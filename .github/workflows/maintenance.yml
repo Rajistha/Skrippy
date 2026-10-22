@@ -1,0 +1,19 @@
+name: Maintenance harian
+
+on:
+  schedule:
+    - cron: "0 20 * * *" # 03.00 WIB
+  workflow_dispatch:
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Panggil endpoint maintenance
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 300 \
+            -X POST "$APP_BASE_URL/api/internal/maintenance" \
+            -H "Authorization: Bearer $CRON_SECRET"

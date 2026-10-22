@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+/* Token dari docs/DESIGN.md. Warna, radius, bayangan, dan font hanya dari sini. */
+
+:root {
+  /* Primer: hijau hutan (warna merek) */
+  --primary-50: #eef8f2;
+  --primary-100: #d9f0e2;
+  --primary-200: #b2e0c6;
+  --primary-300: #84cba4;
+  --primary-400: #52b183;
+  --primary-500: #1f7a4e;
+  --primary-600: #1a6844;
+  --primary-700: #155636;
+  --primary-800: #10432b;
+  --primary-900: #0b2f1e;
+
+  /* Aksen: hijau mint (sorotan, tombol di atas latar hijau tua) */
+  --accent-50: #f1faf5;
+  --accent-100: #dff5e8;
+  --accent-200: #bfebd1;
+  --accent-300: #8fddb1;
+  --accent-400: #5fcb92;
+  --accent-500: #34a56f;
+  --accent-600: #278556;
+  --accent-700: #1d6b45;
+
+  --ink-100: #ebf0ed;
+  --ink-200: #dde5e0;
+  --ink-400: #66756c;
+  --ink-500: #55655c;
+  --ink-700: #2b3a32;
+  --ink-900: #0f1a14;
+
+  --canvas: #f2f4f1;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --on-primary: #ffffff;
+
+  /* Status: selalu dipasangkan dengan simbol dan label teks, tidak pernah warna saja */
+  --sev-critical: #b42318;
+  --sev-critical-bg: #fee4e2;
+  --sev-major: #b54708;
+  --sev-major-bg: #fef0c7;
+  --sev-minor: #175cd3;
+  --sev-minor-bg: #eaf2ff;
+  --sev-success: #1a6844;
+  --sev-success-bg: #d9f0e2;
+
+  --gradient-hero: linear-gradient(135deg, #1c6e47 0%, #145a38 55%, #0b2f1e 100%);
+  --gradient-cta: linear-gradient(135deg, #1c6e47 0%, #0f4d31 100%);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Desain acuan hanya terang. Mode gelap otomatis dimatikan: beberapa mockup memakai putih tetap. */
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-700: var(--ink-700);
+  --color-ink-900: var(--ink-900);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-on-primary: var(--on-primary);
+  --color-sev-critical: var(--sev-critical);
+  --color-sev-critical-bg: var(--sev-critical-bg);
+  --color-sev-major: var(--sev-major);
+  --color-sev-major-bg: var(--sev-major-bg);
+  --color-sev-minor: var(--sev-minor);
+  --color-sev-minor-bg: var(--sev-minor-bg);
+  --color-sev-success: var(--sev-success);
+  --color-sev-success-bg: var(--sev-success-bg);
+
+  --font-display: var(--font-poppins), sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
+  --font-serif: var(--font-source-serif), serif;
+  --font-mono: var(--font-jetbrains), monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-hero: 40px;
+
+  --shadow-sm: 0 1px 2px rgba(11, 47, 30, 0.06);
+  --shadow-md: 0 8px 24px rgba(11, 47, 30, 0.08);
+  --shadow-lg: 0 24px 48px rgba(11, 47, 30, 0.12);
+  --shadow-cta: 0 8px 20px rgba(31, 122, 78, 0.35);
+}
+
+@layer base {
+  html {
+    background: var(--canvas);
+    color: var(--ink-500);
+    font-family: var(--font-inter), sans-serif;
+    font-size: 15px;
+    line-height: 24px;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    background: var(--canvas);
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--ink-900);
+    font-family: var(--font-poppins), sans-serif;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--primary-200);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wait-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+/* Palang kemajuan tanpa angka: penanda bahwa proses sedang berjalan. Diam bila pengguna memilih gerak minimal. */
+.wait-bar {
+  position: relative;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--primary-100);
+}
+.wait-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: 9999px;
+  background: var(--primary-500);
+  animation: wait-slide 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wait-bar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+
+.spin {
+  display: inline-block;
+  animation: spin 0.9s linear infinite;
+}
+
+.rise {
+  animation: rise 320ms var(--ease) both;
+}
+
+.bg-hero {
+  background-image: var(--gradient-hero);
+}
+
+.bg-cta {
+  background-image: var(--gradient-cta);
+}
+
+/* Pola garis diagonal untuk data yang belum ada (batang grafik kosong, bagian "pending") */
+.stripes {
+  background-image: repeating-linear-gradient(135deg, var(--ink-400) 0 2px, transparent 2px 6px);
+  opacity: 0.55;
+}
+
+/* Scrollbar halus untuk kontainer scroll mandiri */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-300) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ink-300);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-400);
+}
+
+/* Modal: kunci gulir latar, animasi masuk. Lembar dari bawah di ponsel. */
+html.modal-open {
+  overflow: hidden;
+}
+
+dialog[open] {
+  animation: dialog-in 200ms var(--ease) both;
+}
+
+dialog::backdrop {
+  animation: fade-in 200ms var(--ease) both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+[id] {
+  scroll-margin-top: 88px;
+}
