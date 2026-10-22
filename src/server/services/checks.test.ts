@@ -126,6 +126,34 @@ describe("alur unggah dan cek", () => {
     expect((guideline!.rules as { disabled_rules?: string[] }).disabled_rules ?? []).toEqual([]);
   });
 
+  it("kegagalan di sisi AI tidak menggagalkan cek aturan", async () => {
+    const { user, thesis } = await setup("package");
+    const doc = await upload(user, thesis.id, await badFormatDocx());
+    const created = await checks.createCheckRun(t.db, user.profile, thesis, doc, ["format"], NOW);
+    // Izin AI (kunci dan pengaturan admin) bukan bagian uji ini: tandai run meminta AI langsung.
+    const [run] = await t.db
+      .update(schema.checkRuns)
+      .set({ checkTypes: ["format", "ai"] })
+      .where(eq(schema.checkRuns.id, created.id))
+      .returning();
+    const ai = { complete: async () => "{}" } as unknown as Parameters<
+      typeof checks.executeCheckRun
+    >[4];
+    // Tabel antrean AI hilang (misalnya migrasi belum diterapkan): dulu seluruh cek ikut gagal.
+    await t.raw.exec("ALTER TABLE ai_slots RENAME TO ai_slots_off");
+    const lines: string[] = [];
+    let done;
+    try {
+      done = await checks.executeCheckRun(t.db, storage, run!.id, (l) => lines.push(l), ai);
+    } finally {
+      await t.raw.exec("ALTER TABLE ai_slots_off RENAME TO ai_slots");
+    }
+    expect(done.status).toBe("completed");
+    expect(done.issueCount).toBeGreaterThan(0);
+    expect(done.aiStatus).toBe("failed");
+    expect(lines.some((l) => l.startsWith("check_ai_failed"))).toBe(true);
+  });
+
   it("kamus admin dan daftar abaikan pengguna memengaruhi cek berikutnya", async () => {
     const { user, thesis } = await setup("package");
     const admin1 = await adminId();

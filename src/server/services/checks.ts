@@ -286,16 +286,23 @@ export async function executeCheckRun(
         aiStatus = "failed";
         aiNote = "AI belum bisa digunakan. Pemilik belum menghubungkannya.";
       } else {
-        const maxChars = (await access.getAppSettings(db))["ai.max_chars"];
-        const result = await runAiChecks(doc, ai, {
-          maxChars,
-          slot: (waitMs) => acquireAiSlot(db, waitMs),
-        });
-        aiStatus = result.status;
-        aiNote = result.note;
-        if (result.status !== "failed") {
-          issues.push(...result.issues.map((i) => withHeading(doc, i)));
-          scored.push("ai");
+        try {
+          const maxChars = (await access.getAppSettings(db))["ai.max_chars"];
+          const result = await runAiChecks(doc, ai, {
+            maxChars,
+            slot: (waitMs) => acquireAiSlot(db, waitMs),
+          });
+          aiStatus = result.status;
+          aiNote = result.note;
+          if (result.status !== "failed") {
+            issues.push(...result.issues.map((i) => withHeading(doc, i)));
+            scored.push("ai");
+          }
+        } catch (e) {
+          // Kegagalan di sisi AI (antrean, pengaturan) tidak boleh menggagalkan cek aturan.
+          aiStatus = "failed";
+          aiNote = "Analisis AI gagal karena kesalahan sistem. Hasil cek aturan tetap tersedia.";
+          log(`check_ai_failed run=${run.id} error=${errorCodeOf(e)}`);
         }
       }
     }
