@@ -8,11 +8,15 @@ import { Logo } from "@/components/ui/Logo";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n/id";
+import { useSignedIn } from "@/lib/use-signed-in";
 
 /** Navbar tetap di atas: transparan di atas hero, putih berbayang setelah digulir. Menu lengkap di ponsel. */
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const signedIn = useSignedIn();
+  const entryHref = signedIn ? "/dashboard" : "/masuk";
+  const entryLabel = signedIn ? t.landing.goDashboard : t.landing.signIn;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -56,7 +60,7 @@ export function LandingNav() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/masuk"
+            href={entryHref}
             className={cn(
               "inline-flex min-h-11 items-center justify-center rounded-full px-6 text-[14px] font-semibold transition-colors",
               scrolled
@@ -64,7 +68,7 @@ export function LandingNav() {
                 : "bg-white text-primary-700 hover:bg-primary-50",
             )}
           >
-            {t.landing.signIn}
+            {entryLabel}
           </Link>
           <button
             type="button"
@@ -99,8 +103,8 @@ export function LandingNav() {
             </li>
           ))}
           <li className="pt-3">
-            <ButtonLink href="/masuk" className="w-full">
-              {t.landing.signIn}
+            <ButtonLink href={entryHref} className="w-full">
+              {entryLabel}
             </ButtonLink>
           </li>
         </ul>

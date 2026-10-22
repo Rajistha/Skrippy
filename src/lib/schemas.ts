@@ -203,6 +203,69 @@ export const summarySchema = z.object({
   active_packages: z.number(),
   payments_this_month_idr: z.number(),
   checks_last_7_days: z.number(),
+  total_users: z.number(),
+  total_theses: z.number(),
+  total_documents: z.number(),
+  daily: z.array(
+    z.object({ date: z.string(), checks: z.number(), failed: z.number(), new_users: z.number() }),
+  ),
+  check_status_30d: z.object({ completed: z.number(), failed: z.number(), other: z.number() }),
+  avg_score_30d: z.number().nullable(),
+  ai_checks_last_7_days: z.number(),
+});
+
+const serviceStatus = z.enum(["ok", "error", "not_configured"]);
+const usageSchema = z.object({ used_bytes: z.number(), limit_bytes: z.number() });
+
+export const orphanScanSchema = z.object({
+  scanned: z.number(),
+  count: z.number(),
+  bytes: z.number(),
+  sample: z.array(z.string()),
+});
+export type OrphanScan = z.infer<typeof orphanScanSchema>;
+
+export const systemSchema = z.object({
+  checked_at: z.string(),
+  app: z.object({
+    environment: z.string(),
+    region: z.string().nullable(),
+    commit: z.string().nullable(),
+    node: z.string(),
+    uptime_seconds: z.number(),
+    storage_provider: z.enum(["supabase", "r2"]),
+  }),
+  supabase: z.object({
+    status: serviceStatus,
+    latency_ms: z.number().nullable(),
+    database: usageSchema.nullable(),
+    connections: z.number().nullable(),
+    auth_users: z.number().nullable(),
+    tables: z.array(z.object({ name: z.string(), bytes: z.number(), rows: z.number() })),
+    storage: z.object({ objects: z.number(), used_bytes: z.number() }).nullable(),
+  }),
+  vercel: z.object({
+    status: serviceStatus,
+    api_connected: z.boolean(),
+    deployments: z.array(
+      z.object({
+        id: z.string(),
+        state: z.string(),
+        target: z.string().nullable(),
+        created_at: z.string(),
+        message: z.string().nullable(),
+        commit: z.string().nullable(),
+      }),
+    ),
+  }),
+  cloudflare: z.object({
+    status: serviceStatus,
+    active: z.boolean(),
+    latency_ms: z.number().nullable(),
+    bucket: z.string().nullable(),
+    files: z.number(),
+    storage: usageSchema,
+  }),
 });
 
 // --- request -----------------------------------------------------------------
@@ -499,6 +562,7 @@ export type BatchCode = z.infer<typeof batchCodeSchema>;
 export type BatchDetail = z.infer<typeof batchDetailSchema>;
 export type CreatedCode = z.infer<typeof createdCodeSchema>;
 export type Summary = z.infer<typeof summarySchema>;
+export type SystemStatus = z.infer<typeof systemSchema>;
 export type CreateCodesIn = z.infer<typeof createCodesInSchema>;
 export type UploadStart = z.infer<typeof uploadStartSchema>;
 /** Empat kategori aturan (selalu tersedia). AI dipilih terpisah karena opsional. */

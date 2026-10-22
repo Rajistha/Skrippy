@@ -4,6 +4,7 @@ import type { StorageClient } from "@/server/integrations/storage";
 export class FakeStorage implements StorageClient {
   files = new Map<string, Uint8Array>();
   removed: string[] = [];
+  modified = new Map<string, Date>();
 
   async createSignedUploadUrl(key: string): Promise<string> {
     return `https://storage.test/upload/${key}`;
@@ -21,6 +22,13 @@ export class FakeStorage implements StorageClient {
       this.removed.push(k);
       this.files.delete(k);
     }
+  }
+  async listObjects() {
+    return [...this.files].map(([key, data]) => ({
+      key,
+      size: data.byteLength,
+      modifiedAt: this.modified.get(key) ?? new Date(0),
+    }));
   }
   /** Simulasi browser mengunggah ke signed URL. */
   upload(url: string, data: Uint8Array): void {

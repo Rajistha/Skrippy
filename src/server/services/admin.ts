@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, gte, isNull, lte, sum } from "drizzle-orm";
+import { and, avg, count, desc, eq, gte, isNotNull, isNull, lte, sql, sum } from "drizzle-orm";
 import type { Db } from "../db";
 import { schema } from "../db";
 import { getEnv } from "../env";
@@ -9,7 +9,7 @@ import type { StorageClient } from "../integrations/storage";
 import * as access from "./access";
 import { deleteAccountData } from "./theses";
 
-const { accessCodes, accessGrants, profiles, checkRuns, theses } = schema;
+const { accessCodes, accessGrants, profiles, checkRuns, theses, documents } = schema;
 
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -86,6 +86,8 @@ export async function listUsers(db: Db, now: Date = new Date()) {
   });
 }
 
+const TREND_DAYS = 14;
+
 export async function summary(db: Db, now: Date = new Date()) {
   const grants = await db
     .select({ userId: accessGrants.userId, kind: accessGrants.kind })
@@ -120,12 +122,82 @@ export async function summary(db: Db, now: Date = new Date()) {
       ),
     );
 
+  const [users] = await db.select({ n: count() }).from(profiles).where(eq(profiles.role, "user"));
+  const [thesisCount] = await db.select({ n: count() }).from(theses);
+  const [docCount] = await db.select({ n: count() }).from(documents);
+
+  // Tren harian 14 hari terakhir (hari kalender WIB), hari tanpa data tetap muncul dengan nilai 0.
+  const days = Array.from({ length: TREND_DAYS }, (_, i) => {
+    const d = new Date(local.getTime() - (TREND_DAYS - 1 - i) * 86_400_000);
+    return d.toISOString().slice(0, 10);
+  });
+  const since = new Date(now.getTime() - (TREND_DAYS + 1) * 86_400_000);
+  const runDay = sql<string>`to_char(${checkRuns.createdAt} at time zone 'Asia/Jakarta', 'YYYY-MM-DD')`;
+  const runsByDay = await db
+    .select({ day: runDay, status: checkRuns.status, n: count() })
+    .from(checkRuns)
+    .where(gte(checkRuns.createdAt, since))
+    .groupBy(runDay, checkRuns.status);
+  const userDay = sql<string>`to_char(${profiles.createdAt} at time zone 'Asia/Jakarta', 'YYYY-MM-DD')`;
+  const usersByDay = await db
+    .select({ day: userDay, n: count() })
+    .from(profiles)
+    .where(and(eq(profiles.role, "user"), gte(profiles.createdAt, since)))
+    .groupBy(userDay);
+  const daily = days.map((date) => {
+    const runs = runsByDay.filter((r) => r.day === date);
+    return {
+      date,
+      checks: runs.filter((r) => r.status === "completed").reduce((n, r) => n + r.n, 0),
+      failed: runs.filter((r) => r.status === "failed").reduce((n, r) => n + r.n, 0),
+      newUsers: usersByDay.find((u) => u.day === date)?.n ?? 0,
+    };
+  });
+
+  const since30 = new Date(now.getTime() - 30 * 86_400_000);
+  const byStatus = await db
+    .select({ status: checkRuns.status, n: count() })
+    .from(checkRuns)
+    .where(gte(checkRuns.createdAt, since30))
+    .groupBy(checkRuns.status);
+  const statusN = (k: string) => byStatus.find((r) => r.status === k)?.n ?? 0;
+  const [avgRow] = await db
+    .select({ v: avg(checkRuns.scoreTotal) })
+    .from(checkRuns)
+    .where(
+      and(
+        gte(checkRuns.createdAt, since30),
+        eq(checkRuns.status, "completed"),
+        isNotNull(checkRuns.scoreTotal),
+      ),
+    );
+  const [aiRow] = await db
+    .select({ n: count() })
+    .from(checkRuns)
+    .where(
+      and(
+        gte(checkRuns.createdAt, new Date(now.getTime() - 7 * 86_400_000)),
+        isNotNull(checkRuns.aiStatus),
+      ),
+    );
+
   return {
     activeUsers: packageUsers.size + trialUsers.size,
     activeTrials: trialUsers.size,
     activePackages: packageUsers.size,
     paymentsThisMonthIdr: Number(pay?.total ?? 0),
     checksLast7Days: checks?.n ?? 0,
+    totalUsers: users?.n ?? 0,
+    totalTheses: thesisCount?.n ?? 0,
+    totalDocuments: docCount?.n ?? 0,
+    daily,
+    checkStatus30d: {
+      completed: statusN("completed"),
+      failed: statusN("failed"),
+      other: byStatus.reduce((n, r) => n + r.n, 0) - statusN("completed") - statusN("failed"),
+    },
+    avgScore30d: avgRow?.v == null ? null : Math.round(Number(avgRow.v) * 10) / 10,
+    aiChecksLast7Days: aiRow?.n ?? 0,
   };
 }
 

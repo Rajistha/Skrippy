@@ -9,8 +9,10 @@ import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { formatRupiah, whatsappLink } from "@/lib/format";
 import { t } from "@/lib/i18n/id";
+import { FooterSignIn } from "./FooterSignIn";
 import type { PublicInfo } from "@/lib/schemas";
 import { ReportMock } from "./ReportMock";
+import { SignupLink } from "./SignupLink";
 
 const WRAP = "mx-auto w-full max-w-[1240px] px-4 sm:px-6";
 const L = t.landing;
@@ -86,9 +88,9 @@ export function Hero({ trial = true }: { trial?: boolean }) {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row">
-            <ButtonLink href="/daftar" variant="mint" className="min-h-12 w-full justify-center px-7 sm:w-auto">
+            <SignupLink variant="mint" className="min-h-12 w-full justify-center px-7 sm:w-auto">
               <Icon name="rocket" /> {trial ? h.primary : t.landing.primaryNoTrial}
-            </ButtonLink>
+            </SignupLink>
             <a
               href="#laporan"
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/50 px-7 text-[14px] font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
@@ -136,7 +138,7 @@ export function Features() {
   return (
     <section id="fitur" className={cn(WRAP, "py-20 sm:py-28")}>
       <SectionHead overline={f.overline} title={f.title} subtitle={f.subtitle} />
-      <ul className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+      <ul className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {f.items.map((item, i) => {
           const solid = i === 1;
           return (
@@ -208,9 +210,9 @@ export function ReportShowcase() {
               <Check key={p}>{p}</Check>
             ))}
           </ul>
-          <ButtonLink href="/daftar" className="mt-8">
+          <SignupLink className="mt-8">
             {r.cta} <Icon name="arrow" />
-          </ButtonLink>
+          </SignupLink>
         </div>
       </div>
     </section>
@@ -318,9 +320,9 @@ export function Pricing({ info }: { info: PublicInfo }) {
                   <Check key={f}>{f}</Check>
                 ))}
               </ul>
-              <ButtonLink href="/daftar" variant="outline" className="mt-8 w-full">
+              <SignupLink variant="outline" className="mt-8 w-full">
                 {p.trial.cta}
-              </ButtonLink>
+              </SignupLink>
             </article>
           )}
           {info.package_enabled && (
@@ -450,9 +452,7 @@ export function Footer({ whatsapp }: { whatsapp: string }) {
               </a>
             </li>
             <li>
-              <Link href="/masuk" className={link}>
-                {L.signIn}
-              </Link>
+              <FooterSignIn className={link} />
             </li>
             {whatsapp && (
               <li>

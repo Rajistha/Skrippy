@@ -34,6 +34,8 @@ import type {
   Me,
   PublicInfo,
   Summary,
+  SystemStatus,
+  OrphanScan,
   Thesis,
   ThesisDetail,
   UploadStart,
@@ -88,6 +90,11 @@ type Paths = {
   };
   "/admin/dictionary/{entry_id}": { DELETE: Ok<void> & { path: "entry_id" } };
   "/admin/summary": { GET: Ok<Summary> };
+  "/admin/system": { GET: Ok<SystemStatus> };
+  "/admin/system/orphans": {
+    GET: Ok<OrphanScan>;
+    POST: Ok<{ deleted: number; bytes: number }>;
+  };
   "/admin/codes": { POST: Ok<CreatedCode[]> & { body: CreateCodesIn } };
   "/admin/batches": { GET: Ok<BatchSummary[]> };
   "/admin/batches/{batch_id}": {

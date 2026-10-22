@@ -59,6 +59,7 @@ import * as adminAiTest from "./admin/ai/test/route";
 import * as adminAiModels from "./admin/ai/models/route";
 import * as aiStatusRoute from "./ai/status/route";
 import * as adminSummary from "./admin/summary/route";
+import * as adminSystem from "./admin/system/route";
 import * as adminUsers from "./admin/users/route";
 import * as adminExtend from "./admin/users/[id]/extend/route";
 import * as adminStop from "./admin/users/[id]/stop/route";
@@ -270,6 +271,7 @@ describe("tukar kode", () => {
 describe("otorisasi admin", () => {
   const routes: Array<[string, unknown, string, unknown?]> = [
     ["GET /admin/summary", adminSummary.GET, "GET"],
+    ["GET /admin/system", adminSystem.GET, "GET"],
     ["GET /admin/batches", adminBatches.GET, "GET"],
     ["POST /admin/codes", adminCodes.POST, "POST", { kind: "trial" }],
     ["GET /admin/users", adminUsers.GET, "GET"],

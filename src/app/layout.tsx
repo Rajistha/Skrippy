@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Poppins, Source_Serif_4 } from "next/font/google";
 import { t } from "@/lib/i18n/id";
@@ -55,6 +57,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {t.nav.skipToContent}
         </a>
         <Providers>{children}</Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

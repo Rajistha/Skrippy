@@ -93,7 +93,7 @@ function RegisterForm() {
       </div>
       <GoogleButton
         loading={googleLoading}
-        label={t.login.signInOnly}
+        label={t.login.signUpOnly}
         onClick={() => void google()}
       />
     </div>

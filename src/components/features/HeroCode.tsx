@@ -1,6 +1,6 @@
 "use client";
 
-import { ButtonLink } from "@/components/ui/Button";
+import { SignupLink } from "@/components/landing/SignupLink";
 import { Icon } from "@/components/ui/Icon";
 import { t } from "@/lib/i18n/id";
 
@@ -20,9 +20,9 @@ export function HeroCode({ trial = true }: { trial?: boolean }) {
           <p className="text-[13px] text-ink-500">{hint}</p>
         </div>
       </div>
-      <ButtonLink href="/daftar" variant="cta" className="w-full">
+      <SignupLink variant="cta" className="w-full">
         {trial ? h.primary : t.landing.primaryNoTrial} <Icon name="arrow" />
-      </ButtonLink>
+      </SignupLink>
     </div>
   );
 }

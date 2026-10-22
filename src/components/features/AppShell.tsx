@@ -30,6 +30,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/pengguna", label: t.nav.adminUsers, icon: "users" },
   { href: "/admin/pedoman", label: t.nav.adminGuidelines, icon: "book" },
   { href: "/admin/kamus", label: t.nav.adminDictionary, icon: "spelling" },
+  { href: "/admin/sistem", label: t.nav.adminSystem, icon: "server" },
   { href: "/admin/pengaturan", label: t.nav.adminSettings, icon: "settings" },
 ];
 
@@ -288,7 +289,9 @@ export function AppShell({ children, title, description, actions, back }: ShellP
               className={cn(
                 "flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-center transition-colors",
                 inAdminArea ? "text-[10px] sm:text-[11px]" : "text-[11px] sm:text-[12px]",
-                active ? "font-bold text-primary-600" : "font-medium text-ink-500 hover:text-ink-900",
+                active
+                  ? "font-bold text-primary-600"
+                  : "font-medium text-ink-500 hover:text-ink-900",
               )}
             >
               <Icon
