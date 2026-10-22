@@ -11,3 +11,9 @@ node_modules/
 coverage/
 *.pyc
 .next-*/
+
+# Dokumen internal, tidak ikut ke GitHub
+AGENTS.md
+docs/DESIGN.md
+docs/PRD.md
+docs/ERD.md
