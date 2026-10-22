@@ -28,7 +28,7 @@ import { AppError, CheckNotAllowed, NotFound, RateLimited } from "../errors";
 import type { AiClient } from "../integrations/ai";
 import type { Comparison, ScoreTrendPoint } from "@/lib/schemas";
 import type { StorageClient } from "../integrations/storage";
-import { reportPdfKey } from "../reports/cache-key";
+import { reportPdfKeys } from "../reports/cache-key";
 import * as access from "./access";
 import { issueOut } from "../mappers";
 import { runAiChecks } from "./ai-check";
@@ -403,7 +403,7 @@ async function dropReportPdf(db: Db, storage: StorageClient, runId: string): Pro
     .from(checkRuns)
     .innerJoin(documents, eq(documents.id, checkRuns.documentId))
     .where(eq(checkRuns.id, runId));
-  if (row) await storage.remove([reportPdfKey(row.storageKey, runId)]).catch(() => undefined);
+  if (row) await storage.remove(reportPdfKeys(row.storageKey, runId)).catch(() => undefined);
 }
 
 export async function recentRuns(

@@ -12,10 +12,126 @@ const AFTER_SZ =
 const AFTER_SPACING =
   /<w:(?:ind|contextualSpacing|mirrorIndents|suppressOverlap|jc|textDirection|textAlignment|textboxTightWrap|outlineLvl|divId|cnfStyle|rPr|sectPr|pPrChange)[\s/>]/;
 
+/** Elemen w:pPr yang harus berada SESUDAH w:ind menurut skema. */
+const AFTER_IND =
+  /<w:(?:contextualSpacing|mirrorIndents|suppressOverlap|jc|textDirection|textAlignment|textboxTightWrap|outlineLvl|divId|cnfStyle|rPr|sectPr|pPrChange)[\s/>]/;
+/** Elemen w:pPr yang harus berada SESUDAH w:jc menurut skema. */
+const AFTER_JC =
+  /<w:(?:textDirection|textAlignment|textboxTightWrap|outlineLvl|divId|cnfStyle|rPr|sectPr|pPrChange)[\s/>]/;
+/** Elemen w:rPr yang harus berada SESUDAH w:i/w:iCs menurut skema. */
+const AFTER_ITALIC =
+  /<w:(?:caps|smallCaps|strike|dstrike|outline|shadow|emboss|imprint|noProof|snapToGrid|vanish|webHidden|color|spacing|w|kern|position|sz|szCs|highlight|u|effect|bdr|shd|fitText|vertAlign|rtl|cs|em|lang|eastAsianLayout|specVanish|oMath)[\s/>]/;
+
 const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-export type ParagraphFix = { font: boolean; size: boolean; spacing: boolean };
+export type ParagraphFix = {
+  font: boolean;
+  size: boolean;
+  spacing: boolean;
+  indent: boolean;
+  align: boolean;
+  /** Ada istilah asing di paragraf ini yang belum dicetak miring. */
+  italic: boolean;
+};
+
+export type Alignment = "left" | "center" | "right" | "justify";
+const JC: Record<Alignment, string> = {
+  left: "left",
+  center: "center",
+  right: "right",
+  justify: "both",
+};
+
+/** Isi w:pPr di awal isi paragraf (tanpa pembungkus), atau null bila belum ada. */
+const PPR = /^\s*<w:pPr>([\s\S]*?)<\/w:pPr>/;
+
+/** Indentasi baris pertama. Paragraf berdaftar (w:numPr) dibiarkan karena indentasinya milik daftar. */
+function fixIndent(inner: string, cm: number): string {
+  const value = Math.round(cm * TWIPS_PER_CM);
+  const pPr = PPR.exec(inner);
+  if (!pPr) return `<w:pPr><w:ind w:firstLine="${value}"/></w:pPr>${inner}`;
+  const props = pPr[1]!;
+  if (/<w:numPr[\s/>]/.test(props)) return inner;
+  const existing = /<w:ind\b([^>]*?)\/>/.exec(props);
+  let next: string;
+  if (existing) {
+    // firstLineChars menimpa firstLine, dan hanging bertentangan dengannya: buang ketiganya.
+    const attrs = existing[1]!.replace(
+      /\sw:(?:firstLine|firstLineChars|hanging|hangingChars)="[^"]*"/g,
+      "",
+    );
+    next = props.replace(existing[0], `<w:ind${attrs} w:firstLine="${value}"/>`);
+  } else {
+    const el = `<w:ind w:firstLine="${value}"/>`;
+    const at = props.search(AFTER_IND);
+    next = at === -1 ? props + el : props.slice(0, at) + el + props.slice(at);
+  }
+  return `<w:pPr>${next}</w:pPr>${inner.slice(pPr[0].length)}`;
+}
+
+function fixAlignment(inner: string, align: Alignment): string {
+  const el = `<w:jc w:val="${JC[align]}"/>`;
+  const pPr = PPR.exec(inner);
+  if (!pPr) return `<w:pPr>${el}</w:pPr>${inner}`;
+  const props = pPr[1]!;
+  const existing = /<w:jc\b[^>]*\/>/.exec(props);
+  let next: string;
+  if (existing) next = props.replace(existing[0], el);
+  else {
+    const at = props.search(AFTER_JC);
+    next = at === -1 ? props + el : props.slice(0, at) + el + props.slice(at);
+  }
+  return `<w:pPr>${next}</w:pPr>${inner.slice(pPr[0].length)}`;
+}
+
+const ALREADY_ITALIC = /<w:i(?:\s+w:val="(?:1|true|on)")?\s*\/>/;
+
+function italicProps(props: string): string {
+  const stripped = props.replace(/<w:(?:i|iCs)\b[^>]*\/>/g, "");
+  const el = "<w:i/><w:iCs/>";
+  const at = stripped.search(AFTER_ITALIC);
+  return at === -1 ? stripped + el : stripped.slice(0, at) + el + stripped.slice(at);
+}
+
+const SINGLE_TEXT_RUN =
+  /^(<w:r(?:\s[^>]*)?>)(\s*<w:rPr\s*\/>|\s*<w:rPr>[\s\S]*?<\/w:rPr>)?\s*<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>\s*<\/w:r>$/;
+
+/**
+ * Cetak miring istilah asing. Hanya run berisi satu w:t yang dipecah (sebelum, istilah, sesudah);
+ * istilah yang terbelah antar-run atau run berisi tab dan sejenisnya dibiarkan.
+ */
+function italicizeTerms(inner: string, terms: RegExp): string {
+  return inner.replace(RUN, (run) => {
+    const m = SINGLE_TEXT_RUN.exec(run);
+    if (!m) return run;
+    const open = m[1]!;
+    const rPrFull = m[2];
+    const text = m[3]!;
+    const props = rPrFull ? (/<w:rPr>([\s\S]*)<\/w:rPr>/.exec(rPrFull)?.[1] ?? "") : "";
+    if (ALREADY_ITALIC.test(props)) return run;
+    const re = new RegExp(
+      terms.source,
+      terms.flags.includes("g") ? terms.flags : `${terms.flags}g`,
+    );
+    const pieces: { text: string; italic: boolean }[] = [];
+    let last = 0;
+    for (const hit of text.matchAll(re)) {
+      if (hit.index > last) pieces.push({ text: text.slice(last, hit.index), italic: false });
+      pieces.push({ text: hit[0], italic: true });
+      last = hit.index + hit[0].length;
+    }
+    if (pieces.length === 0) return run;
+    if (last < text.length) pieces.push({ text: text.slice(last), italic: false });
+    const plainProps = rPrFull ? `<w:rPr>${props}</w:rPr>` : "";
+    return pieces
+      .map(
+        (pc) =>
+          `${open}${pc.italic ? `<w:rPr>${italicProps(props)}</w:rPr>` : plainProps}<w:t xml:space="preserve">${pc.text}</w:t></w:r>`,
+      )
+      .join("");
+  });
+}
 
 const RUN = /<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g;
 
@@ -81,11 +197,21 @@ function fixSpacing(inner: string, line: number): string {
 export function fixParagraphInner(
   inner: string,
   fix: ParagraphFix,
-  want: { font: string; sizePt: number; lineSpacing: number },
+  want: {
+    font: string;
+    sizePt: number;
+    lineSpacing: number;
+    indentCm: number;
+    align: Alignment;
+    foreignTerms: RegExp;
+  },
 ): string {
   let out = inner;
   if (fix.spacing) out = fixSpacing(out, want.lineSpacing);
+  if (fix.indent) out = fixIndent(out, want.indentCm);
+  if (fix.align) out = fixAlignment(out, want.align);
   if (fix.font || fix.size) out = fixRuns(out, fix, want);
+  if (fix.italic) out = italicizeTerms(out, want.foreignTerms);
   return out;
 }
 
@@ -115,5 +241,80 @@ export function fixMargins(xml: string, want: Margins): { xml: string; changed: 
     changed++;
     return `<w:pgMar${next}/>`;
   });
+  return { xml: out, changed };
+}
+
+const attrNum = (attrs: string, name: string): number | null => {
+  const m = new RegExp(`\\sw:${name}="(-?\\d+)"`).exec(attrs);
+  return m ? Number(m[1]) : null;
+};
+
+/** Lebar area teks (twips) dari w:sectPr pertama sesudah posisi `from`, yaitu section tempat tabel berada. */
+function textWidthAfter(xml: string, from: number): number | null {
+  const re = /<w:sectPr\b[\s\S]*?<\/w:sectPr>/g;
+  re.lastIndex = from;
+  const sect = re.exec(xml);
+  if (!sect) return null;
+  const sz = /<w:pgSz\b([^>]*?)\/>/.exec(sect[0]);
+  const mar = /<w:pgMar\b([^>]*?)\/>/.exec(sect[0]);
+  const page = sz ? attrNum(sz[1]!, "w") : null;
+  const left = mar ? attrNum(mar[1]!, "left") : null;
+  const right = mar ? attrNum(mar[1]!, "right") : null;
+  if (page === null || left === null || right === null) return null;
+  return page - left - right;
+}
+
+/** Skala lebar w:w pada elemen berjenis dxa; lebar persen atau otomatis dibiarkan. */
+const scaleDxa = (xml: string, tag: string, factor: number): string =>
+  xml.replace(new RegExp(`<w:${tag}\\b([^>]*?)\\/>`, "g"), (whole, attrs: string) => {
+    if (tag !== "gridCol" && !/\sw:type="dxa"/.test(attrs)) return whole;
+    return whole.replace(
+      /(\sw:w=")(\d+)(")/,
+      (_m, a: string, v: string, b: string) => `${a}${Math.floor(Number(v) * factor)}${b}`,
+    );
+  });
+
+/**
+ * Perkecil tabel yang lebih lebar dari area teks (misalnya sesudah margin diperbesar) secara proporsional.
+ * Tabel yang bersarang dibiarkan. Mengembalikan XML baru dan jumlah tabel yang diubah.
+ */
+export function fixTableWidths(xml: string, toleranceCm: number): { xml: string; changed: number } {
+  const spans: { start: number; end: number; nested: boolean }[] = [];
+  const tag = /<(\/?)w:tbl(?=[\s>])[^>]*>/g;
+  let depth = 0;
+  let start = 0;
+  let nested = false;
+  for (let m = tag.exec(xml); m; m = tag.exec(xml)) {
+    if (m[1] !== "/") {
+      if (depth === 0) {
+        start = m.index;
+        nested = false;
+      } else nested = true;
+      depth++;
+    } else {
+      depth--;
+      if (depth === 0) spans.push({ start, end: m.index + m[0].length, nested });
+    }
+  }
+  let out = xml;
+  let changed = 0;
+  // Dari belakang ke depan agar posisi tabel sebelumnya tidak bergeser.
+  for (const span of spans.reverse()) {
+    if (span.nested) continue;
+    const table = out.slice(span.start, span.end);
+    const total = [...table.matchAll(/<w:gridCol\b[^>]*?\sw:w="(\d+)"/g)].reduce(
+      (sum, g) => sum + Number(g[1]),
+      0,
+    );
+    const limit = textWidthAfter(out, span.end);
+    if (total === 0 || limit === null || limit <= 0) continue;
+    if (total <= limit + toleranceCm * TWIPS_PER_CM) continue;
+    const factor = limit / total;
+    let next = scaleDxa(table, "gridCol", factor);
+    next = scaleDxa(next, "tblW", factor);
+    next = scaleDxa(next, "tcW", factor);
+    out = out.slice(0, span.start) + next + out.slice(span.end);
+    changed++;
+  }
   return { xml: out, changed };
 }

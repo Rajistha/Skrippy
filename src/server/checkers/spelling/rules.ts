@@ -49,7 +49,7 @@ export const nonStandardWord: Checker = {
       Object.keys(extra).length === 0
         ? NONSTANDARD_RE
         : new RegExp(
-            `(?<![\p{L}])(${Object.keys(words).map(escapeRe).join("|")})(?![\p{L}])`,
+            `(?<![\\p{L}])(${Object.keys(words).map(escapeRe).join("|")})(?![\\p{L}])`,
             "giu",
           );
     const issues: Issue[] = [];
@@ -285,19 +285,33 @@ const FOREIGN_RE = new RegExp(
   "giu",
 );
 
+/** Pola istilah asing: daftar bawaan ditambah istilah tambahan dari kamus admin. */
+export function foreignTermRegex(extra: string[] = []): RegExp {
+  if (extra.length === 0) return FOREIGN_RE;
+  return new RegExp(
+    `(?<![\\p{L}])(${[...FOREIGN_TERMS, ...extra].map(escapeRe).join("|")})(?![\\p{L}])`,
+    "giu",
+  );
+}
+
+/** Ada istilah asing di paragraf ini yang tidak dicetak miring sama sekali. Paragraf yang tidak selaras dengan run dilewati. */
+export function hasUnitalicForeignTerm(p: ParsedParagraph, re: RegExp): boolean {
+  const italicAt: boolean[] = [];
+  for (const r of p.runs) for (let i = 0; i < r.text.length; i++) italicAt.push(r.italic);
+  if (italicAt.length !== p.text.length) return false;
+  for (const m of p.text.matchAll(re)) {
+    const slice = italicAt.slice(m.index!, m.index! + m[0].length);
+    if (slice.length > 0 && slice.every((x) => !x)) return true;
+  }
+  return false;
+}
+
 export const foreignTermItalic: Checker = {
   code: "EJA-006",
   category: "spelling",
   defaultSeverity: "minor",
   run(doc, rules) {
-    const extra = rules.dictionary?.foreign ?? [];
-    const re =
-      extra.length === 0
-        ? FOREIGN_RE
-        : new RegExp(
-            `(?<![\p{L}])(${[...FOREIGN_TERMS, ...extra].map(escapeRe).join("|")})(?![\p{L}])`,
-            "giu",
-          );
+    const re = foreignTermRegex(rules.dictionary?.foreign ?? []);
     const issues: Issue[] = [];
     for (const p of bodyParagraphs(doc)) {
       // Peta posisi karakter -> apakah run itu miring.

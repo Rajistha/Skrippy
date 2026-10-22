@@ -1,15 +1,17 @@
 /**
  * Perbaikan otomatis yang aman untuk salinan naskah (.docx). Murni: bytes masuk, bytes keluar.
  *
- * Hanya mengubah teks di dalam satu run (w:t) dan tidak menyentuh format, tabel, gambar, atau daftar pustaka:
- * kata tidak baku (EJA-001), "di"/"ke" yang digabung (EJA-002), spasi ganda (EJA-003), dan spasi sebelum
- * tanda baca (EJA-004). File asli tidak diubah.
+ * Teks (di dalam satu run w:t): kata tidak baku (EJA-001), "di"/"ke" yang digabung (EJA-002), spasi ganda
+ * (EJA-003), dan spasi sebelum tanda baca (EJA-004).
+ * Format (bila aturan diberikan): huruf, ukuran, spasi baris, indentasi, perataan, istilah asing miring
+ * (EJA-006), margin, dan lebar tabel yang melewati area teks. Gambar dan daftar pustaka tidak disentuh.
+ * File asli tidak diubah.
  */
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
-import { MERGED_PREPOSITIONS, WORDS } from "../checkers/spelling/rules";
+import { foreignTermRegex, MERGED_PREPOSITIONS, WORDS } from "../checkers/spelling/rules";
 import type { Rules } from "../checkers/types";
 import { findTopLevelParagraphs } from "./annotate-docx";
-import { fixMargins, fixParagraphInner, type ParagraphFix } from "./fix-format";
+import { fixMargins, fixParagraphInner, fixTableWidths, type ParagraphFix } from "./fix-format";
 
 const MAX_UNCOMPRESSED = 200 * 1024 * 1024;
 
@@ -22,11 +24,15 @@ export type FixSummary = {
   sizes: number;
   spacings: number;
   margins: number;
+  indents: number;
+  alignments: number;
+  italics: number;
+  tables: number;
 };
 
 /** Perbaikan format: paragraf mana yang perlu diubah (menurut hasil parse) dan aturan tujuannya. */
 export type FormatFix = {
-  rules: Pick<Rules, "body" | "page">;
+  rules: Pick<Rules, "body" | "page" | "dictionary">;
   paragraphs: Map<number, ParagraphFix>;
 };
 
@@ -102,7 +108,12 @@ export function fixDocx(
     sizes: 0,
     spacings: 0,
     margins: 0,
+    indents: 0,
+    alignments: 0,
+    italics: 0,
+    tables: 0,
   };
+  const foreignTerms = foreignTermRegex(format?.rules.dictionary?.foreign ?? []);
   let xml = strFromU8(docBytes);
   const spans = findTopLevelParagraphs(xml);
   const last = untilParagraph === null ? spans.length : Math.min(untilParagraph, spans.length);
@@ -118,16 +129,26 @@ export function fixDocx(
     );
     let result = fixed;
     const need = format?.paragraphs.get(i);
-    if (format && need && (need.font || need.size || need.spacing)) {
+    if (
+      format &&
+      need &&
+      (need.font || need.size || need.spacing || need.indent || need.align || need.italic)
+    ) {
       const spacing = format.rules.body.line_spacing;
       result = fixParagraphInner(result, need, {
         font: format.rules.body.font_family,
         sizePt: format.rules.body.font_size_pt,
         lineSpacing: Array.isArray(spacing) ? spacing[0]! : spacing,
+        indentCm: format.rules.body.first_line_indent_cm,
+        align: format.rules.body.alignment,
+        foreignTerms,
       });
       if (need.font) summary.fonts++;
       if (need.size) summary.sizes++;
       if (need.spacing) summary.spacings++;
+      if (need.indent) summary.indents++;
+      if (need.align) summary.alignments++;
+      if (need.italic) summary.italics++;
     }
     if (result !== inner) xml = xml.slice(0, from) + result + xml.slice(span.close);
   }
@@ -136,6 +157,10 @@ export function fixDocx(
     const out = fixMargins(xml, m);
     xml = out.xml;
     summary.margins = out.changed;
+    // Margin yang berubah menyempitkan area teks: tabel yang tadinya muat bisa jadi melewati margin.
+    const tables = fixTableWidths(xml, format.rules.page.margin_tolerance_cm);
+    xml = tables.xml;
+    summary.tables = tables.changed;
   }
 
   const total = Object.values(summary).reduce((a, b) => a + b, 0);

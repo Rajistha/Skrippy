@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { body, buildDocx, goodDocx, heading } from "@tests/fixtures/build-fixtures";
 import { parseDocx } from "../checkers/parse/document";
-import { loadDefaults } from "../checkers/rules";
+import { runChecks } from "../checkers/registry";
+import { loadDefaults, resolveRules } from "../checkers/rules";
+import { foreignTermRegex, hasUnitalicForeignTerm } from "../checkers/spelling/rules";
 import { bodyParagraphs } from "../checkers/types";
 import { fixDocx, fixText, type FixSummary } from "./fix-docx";
 import type { ParagraphFix } from "./fix-format";
@@ -15,6 +17,10 @@ const fresh = (): FixSummary => ({
   sizes: 0,
   spacings: 0,
   margins: 0,
+  indents: 0,
+  alignments: 0,
+  italics: 0,
+  tables: 0,
 });
 
 describe("perbaikan otomatis teks", () => {
@@ -31,6 +37,10 @@ describe("perbaikan otomatis teks", () => {
       sizes: 0,
       spacings: 0,
       margins: 0,
+      indents: 0,
+      alignments: 0,
+      italics: 0,
+      tables: 0,
     });
   });
 
@@ -92,7 +102,10 @@ describe("fixDocx: perbaikan format", () => {
     });
     const before = parseDocx(data);
     const wrong = new Map<number, ParagraphFix>(
-      bodyParagraphs(before).map((p) => [p.index, { font: true, size: true, spacing: true }]),
+      bodyParagraphs(before).map((p) => [
+        p.index,
+        { font: true, size: true, spacing: true, indent: false, align: false, italic: false },
+      ]),
     );
     expect(wrong.size).toBe(2);
     const out = fixDocx(data, null, { rules, paragraphs: wrong });
@@ -117,5 +130,93 @@ describe("fixDocx: perbaikan format", () => {
     const out = fixDocx(data, null, { rules, paragraphs: new Map() });
     expect(out.total).toBe(0);
     expect(out.bytes).toBe(data);
+  });
+});
+
+describe("fixDocx: indentasi, perataan, istilah asing, dan lebar tabel", () => {
+  const rules = resolveRules(loadDefaults() as never);
+  const foreign = foreignTermRegex();
+  const long = "Kami memakai database dan input data untuk analisis hasil penelitian ini.";
+
+  /** Sama dengan formatFixes di service: paragraf isi yang menyimpang dari pedoman. */
+  function needs(data: Uint8Array): Map<number, ParagraphFix> {
+    const doc = parseDocx(data);
+    const out = new Map<number, ParagraphFix>();
+    for (const p of bodyParagraphs(doc)) {
+      out.set(p.index, {
+        font: false,
+        size: false,
+        spacing: false,
+        indent: Math.abs((p.firstLineIndentCm ?? 0) - rules.body.first_line_indent_cm) > 0.15,
+        align: (p.alignment ?? "left") !== rules.body.alignment,
+        italic: hasUnitalicForeignTerm(p, foreign),
+      });
+    }
+    return out;
+  }
+
+  const codes = (data: Uint8Array): string[] =>
+    runChecks(parseDocx(data), rules, ["format", "spelling"]).map((i) => i.ruleCode);
+
+  it("menyamakan indentasi, perataan, dan cetak miring istilah asing tanpa mengubah teks", async () => {
+    const data = await buildDocx({
+      defaultIndentCm: 0,
+      defaultJustify: false,
+      sections: [{ blocks: [heading("BAB I"), body(long), body(long)] }],
+    });
+    expect(codes(data)).toEqual(expect.arrayContaining(["FMT-006", "FMT-007", "EJA-006"]));
+    const textBefore = parseDocx(data).paragraphs.map((p) => p.text);
+
+    const out = fixDocx(data, null, { rules, paragraphs: needs(data) });
+    expect(out.summary).toMatchObject({ indents: 2, alignments: 2, italics: 2 });
+    const after = codes(out.bytes);
+    expect(after).not.toContain("FMT-006");
+    expect(after).not.toContain("FMT-007");
+    expect(after).not.toContain("EJA-006");
+    // Teks utuh walau run dipecah, dan hanya istilahnya yang miring.
+    expect(parseDocx(out.bytes).paragraphs.map((p) => p.text)).toEqual(textBefore);
+    const italic = parseDocx(out.bytes)
+      .paragraphs[1]!.runs.filter((r) => r.italic)
+      .map((r) => r.text);
+    expect(italic).toEqual(["database", "input"]);
+  });
+
+  it("run yang sudah miring dan paragraf berdaftar tidak diubah", async () => {
+    const data = await buildDocx({
+      defaultIndentCm: 1.25,
+      defaultJustify: true,
+      sections: [
+        {
+          blocks: [
+            heading("BAB I"),
+            {
+              kind: "p",
+              runs: [
+                { text: "Kami memakai " },
+                { text: "database", italics: true },
+                { text: " dan metode lain untuk analisis hasil penelitian ini." },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const out = fixDocx(data, null, { rules, paragraphs: needs(data) });
+    expect(out.total).toBe(0);
+  });
+
+  it("tabel yang melewati area teks sesudah margin diubah dikecilkan agar muat", async () => {
+    const data = await buildDocx({
+      sections: [
+        { margins: [3, 4, 3, 3], blocks: [heading("BAB I"), body(), { kind: "table" }, body()] },
+      ],
+    });
+    // Margin 3 cm: tabel 15 cm muat. Margin pedoman 4 cm di kiri menyempitkannya jadi 14 cm.
+    expect(codes(data)).not.toContain("FMT-019");
+    const out = fixDocx(data, null, { rules, paragraphs: new Map() });
+    expect(out.summary).toMatchObject({ margins: 1, tables: 1 });
+    expect(codes(out.bytes)).not.toContain("FMT-019");
+    const table = parseDocx(out.bytes).tables[0]!;
+    expect(table.widthCm!).toBeLessThanOrEqual(14.05);
   });
 });

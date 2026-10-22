@@ -8,7 +8,7 @@ import { schema } from "../db";
 import { getEnv } from "../env";
 import { AppError, InvalidUpload, NotFound } from "../errors";
 import type { StorageClient } from "../integrations/storage";
-import { reportPdfKey } from "../reports/cache-key";
+import { reportPdfKeys } from "../reports/cache-key";
 import type { Profile } from "./access";
 import { DOCX_MIME, validateDocx } from "./file-validation";
 
@@ -239,7 +239,7 @@ export async function deleteDocument(
     .where(eq(checkRuns.documentId, document.id));
   await storage.remove([
     document.storageKey,
-    ...runs.map((r) => reportPdfKey(document.storageKey, r.id)),
+    ...runs.flatMap((r) => reportPdfKeys(document.storageKey, r.id)),
   ]);
 }
 

@@ -50,7 +50,7 @@ import * as compareRoute from "./checks/[id]/compare/route";
 import * as shareRoute from "./checks/[id]/share/route";
 import * as shareLinkRoute from "./checks/[id]/share/[linkId]/route";
 import * as pdfRoute from "./checks/[id]/pdf/route";
-import * as annotatedRoute from "./checks/[id]/annotated/route";
+import * as issuesPdfRoute from "./checks/[id]/issues-pdf/route";
 import * as trendRoute from "./checks/[id]/trend/route";
 import * as fixedRoute from "./checks/[id]/fixed/route";
 import * as publicShare from "./public/share/[token]/route";
@@ -854,7 +854,7 @@ describe("tautan berbagi", () => {
       ["cabut tautan", shareLinkRoute.DELETE, "DELETE", { id: runId, linkId }],
       ["bandingkan", compareRoute.GET, "GET", { id: runId }],
       ["pdf", pdfRoute.GET, "GET", { id: runId }],
-      ["docx bersorot", annotatedRoute.GET, "GET", { id: runId }],
+      ["pdf daftar temuan", issuesPdfRoute.GET, "GET", { id: runId }],
       ["docx dirapikan", fixedRoute.GET, "GET", { id: runId }],
     ] as const) {
       const res = await raw(handler, method, params);
@@ -862,6 +862,7 @@ describe("tautan berbagi", () => {
     }
     state.user = null;
     expect((await raw(pdfRoute.GET, "GET", { id: runId })).status).toBe(401);
+    expect((await raw(issuesPdfRoute.GET, "GET", { id: runId })).status).toBe(401);
     expect((await raw(shareRoute.POST, "POST", { id: runId })).status).toBe(401);
   });
 
@@ -884,18 +885,28 @@ describe("tautan berbagi", () => {
 });
 
 describe("unduhan dan perbandingan", () => {
-  it("PDF dan docx bersorot, dan perbandingan dua versi", async () => {
+  it("PDF bersorot, laporan temuan, naskah rapi, dan perbandingan dua versi", async () => {
     await loginUserWithAccess("unduh@example.com");
     const v1 = await finishedRun();
     const pdf = await raw(pdfRoute.GET, "GET", { id: v1.runId });
     expect(pdf.status).toBe(200);
     expect(pdf.headers.get("content-type")).toBe("application/pdf");
-    expect(pdf.headers.get("content-disposition")).toContain("-skrippy.pdf");
+    expect(pdf.headers.get("content-disposition")).toMatch(
+      /^attachment; filename="Skrippy_Naskah-Bersorot_.+_v1\.pdf"$/,
+    );
     expect(new TextDecoder().decode(pdf.bytes.slice(0, 5))).toBe("%PDF-");
+
+    const issuesPdf = await raw(issuesPdfRoute.GET, "GET", { id: v1.runId });
+    expect(issuesPdf.status).toBe(200);
+    expect(issuesPdf.headers.get("content-type")).toBe("application/pdf");
+    expect(issuesPdf.headers.get("content-disposition")).toMatch(
+      /^attachment; filename="Skrippy_Laporan-Temuan_.+_v1\.pdf"$/,
+    );
+    expect(new TextDecoder().decode(issuesPdf.bytes.slice(0, 5))).toBe("%PDF-");
 
     // Unduhan kedua memakai salinan tersimpan; mengubah status temuan membuangnya.
     const storage = state.storage as FakeStorage;
-    const cachedKey = [...storage.files.keys()].find((k) => k.endsWith(".report.pdf"));
+    const cachedKey = [...storage.files.keys()].find((k) => k.endsWith(".report.v2.pdf"));
     expect(cachedKey).toBeDefined();
     const again = await raw(pdfRoute.GET, "GET", { id: v1.runId });
     expect(again.bytes).toEqual(pdf.bytes);
@@ -910,7 +921,9 @@ describe("unduhan dan perbandingan", () => {
 
     const fixed = await raw(fixedRoute.GET, "GET", { id: v1.runId });
     expect(fixed.status).toBe(200);
-    expect(fixed.headers.get("content-disposition")).toContain("-rapi.docx");
+    expect(fixed.headers.get("content-disposition")).toMatch(
+      /^attachment; filename="Skrippy_Naskah-Rapi_.+_v1\.docx"$/,
+    );
     expect(Number(fixed.headers.get("x-skrippy-changes"))).toBeGreaterThan(0); // naskah uji berhuruf dan margin salah
     expect(new TextDecoder().decode(fixed.bytes.slice(0, 2))).toBe("PK");
 
@@ -919,15 +932,6 @@ describe("unduhan dan perbandingan", () => {
       words: expect.any(Number),
       readability: { sentences: expect.any(Number) },
     });
-
-    const docx = await raw(annotatedRoute.GET, "GET", { id: v1.runId });
-    expect(docx.status).toBe(200);
-    expect(docx.headers.get("content-disposition")).toContain("-skrippy.docx");
-    const { unzipSync, strFromU8 } = await import("fflate");
-    const files = unzipSync(docx.bytes);
-    const documentXml = strFromU8(files["word/document.xml"]!);
-    expect(documentXml).toMatch(/<w:shd [^>]*w:fill="(FDA29B|FEDF89|B2CCFF)"/);
-    expect(files["word/comments.xml"]).toBeUndefined();
 
     const first = await call(compareRoute.GET, "GET", undefined, { id: v1.runId });
     expect(first.body).toMatchObject({ base: null, counts: { fixed: 0, added: 0, remaining: 0 } });

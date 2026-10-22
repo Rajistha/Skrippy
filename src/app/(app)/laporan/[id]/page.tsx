@@ -195,14 +195,14 @@ export default function ReportPage() {
             <DownloadMenu
               items={[
                 {
-                  href: `/api/checks/${id}/pdf`,
-                  label: t.share.pdf,
-                  description: t.report.downloadPdfNote,
+                  href: `/api/checks/${id}/issues-pdf`,
+                  label: t.report.issuesPdf,
+                  description: t.report.issuesPdfNote,
                 },
                 {
-                  href: `/api/checks/${id}/annotated`,
-                  label: t.share.annotated,
-                  description: t.report.downloadDocxNote,
+                  href: `/api/checks/${id}/pdf`,
+                  label: t.report.highlightPdf,
+                  description: t.report.downloadPdfNote,
                 },
                 {
                   href: `/api/checks/${id}/fixed`,
@@ -368,7 +368,11 @@ export default function ReportPage() {
                 {issues
                   ? pageSize === -1 || totalItems <= pageSize
                     ? t.report.showing(visible.length, all.length)
-                    : t.report.showingRange(startIndex + 1, Math.min(endIndex, totalItems), totalItems)
+                    : t.report.showingRange(
+                        startIndex + 1,
+                        Math.min(endIndex, totalItems),
+                        totalItems,
+                      )
                   : t.common.loading}
               </span>
 
