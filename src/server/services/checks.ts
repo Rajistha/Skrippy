@@ -223,8 +223,14 @@ export function runPipeline(
 
 const isRuleCategory = (c: string): c is Category => (CATEGORIES as readonly string[]).includes(c);
 
-const errorCodeOf = (e: unknown): string =>
-  e instanceof AppError ? e.code : e instanceof Error ? e.name.slice(0, 60) : "unknown";
+// Pesan hanya ikut dicatat bila berupa kode tetap (snake_case), supaya tidak pernah memuat isi naskah.
+const SAFE_CODE = /^[a-z][a-z0-9_]{0,59}$/;
+
+const errorCodeOf = (e: unknown): string => {
+  if (e instanceof AppError) return e.code;
+  if (!(e instanceof Error)) return "unknown";
+  return SAFE_CODE.test(e.message) ? e.message : e.name.slice(0, 60);
+};
 
 /**
  * Jalankan satu check_run. Idempoten: run yang sudah selesai atau gagal dikembalikan apa adanya.
