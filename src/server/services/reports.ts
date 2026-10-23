@@ -14,6 +14,7 @@ import { bodyParagraphs, type Rules } from "../checkers/types";
 import { buildHighlightPdf, type HighlightIssue } from "../reports/highlight-pdf";
 import { buildIssuesPdf, type IssuesPdfItem } from "../reports/issues-pdf";
 import { t } from "@/lib/i18n/id";
+import type { ManuscriptPreview } from "@/lib/schemas";
 import { parseDocx } from "../checkers/parse/document";
 import { listIssues, type CheckIssueRow, type CheckRunRow } from "./checks";
 
@@ -105,6 +106,30 @@ export async function buildHighlightedPdf(
   });
   await storage.save(cacheKey, bytes, "application/pdf").catch(() => undefined);
   return { bytes, filename };
+}
+
+/** Teks naskah per paragraf untuk pratinjau di aplikasi. Teks tidak di-log dan tidak disimpan. */
+export async function buildPreview(
+  db: Db,
+  storage: StorageClient,
+  run: CheckRunRow,
+): Promise<ManuscriptPreview> {
+  ensureCompleted(run);
+  const { doc, title } = await context(db, run);
+  if (doc.deletedAt !== null) throw new NotFound("Naskah sudah dihapus.");
+  const parsed = parseDocx(await loadOriginal(storage, doc.storageKey));
+  return {
+    title,
+    version_no: doc.versionNo,
+    paragraphs: parsed.paragraphs
+      .filter((p) => p.text.trim() !== "")
+      .map((p) => ({
+        index: p.index,
+        text: p.text,
+        kind: p.isToc ? "toc" : p.headingLevel !== null || p.isChapterHeading ? "heading" : "body",
+        align: p.alignment ?? "left",
+      })),
+  };
 }
 
 /** Teks letak singkat dari lokasi temuan; kosong bila temuan berlaku untuk seluruh naskah. */

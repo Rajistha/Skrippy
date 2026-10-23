@@ -27,5 +27,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // /api dikecualikan: Route Handler sudah memverifikasi sendiri, jadi tidak perlu dua kali.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|webp)$).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|pwa-icon|.*\\.(?:svg|png|jpg|webp)$).*)",
+  ],
 };

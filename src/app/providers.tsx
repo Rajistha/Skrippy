@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { PwaRegister } from "@/components/features/PwaRegister";
 import { ToastProvider, dismissToast, toast } from "@/components/ui/Toast";
 import { t } from "@/lib/i18n/id";
 
@@ -35,6 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
       <OnlineStatus />
+      <PwaRegister />
       {children}
     </ToastProvider>
   );

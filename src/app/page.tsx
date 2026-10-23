@@ -6,6 +6,7 @@ import {
   Footer,
   Hero,
   HowItWorks,
+  InstallBand,
   Pricing,
   PrivacyBand,
   ReportShowcase,
@@ -25,6 +26,7 @@ export default async function LandingPage() {
         <ReportShowcase />
         <HowItWorks />
         <PrivacyBand />
+        <InstallBand />
         <Pricing info={info} />
         <FaqSection whatsapp={info.whatsapp} />
         <CtaBanner trial={info.trial_enabled} />

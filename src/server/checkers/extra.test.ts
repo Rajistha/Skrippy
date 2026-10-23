@@ -442,3 +442,77 @@ describe("gambar dan tabel: teks alternatif, baris judul, huruf", () => {
     expect(only(smaller, "FMT-029")).toEqual([]);
   });
 });
+
+describe("sitasi bernomor dan huruf pembeda tahun", () => {
+  const numbered = (text: string, refs: string[]): Uint8Array =>
+    docx([p("BAB I"), p(text), p("DAFTAR PUSTAKA"), ...refs.map((r) => p(r))]);
+  const ieee = { citation: { style: "ieee", max_source_age_years: 10, max_old_source_ratio: 0.3 } };
+  const rules = resolveRules(ieee as never);
+  const REFS = ["[1] A. Adams, Judul satu, 2020.", "[2] B. Budi, Judul dua, 2021."];
+
+  it("SIT-012 nomor sitasi tanpa entri", () => {
+    const bad = run(numbered("Metode ini [1] dan [3] dipakai.", REFS), "citation", rules);
+    const found = only(bad, "SIT-012");
+    expect(found).toHaveLength(1);
+    expect(found[0]!.message).toContain("[3]");
+    const ok = run(numbered("Metode ini [1] dan [2] dipakai.", REFS), "citation", rules);
+    expect(only(ok, "SIT-012")).toEqual([]);
+  });
+
+  it("SIT-012 membaca rentang dan daftar nomor: [1, 2] dan [1-2]", () => {
+    expect(
+      only(run(numbered("Lihat [1, 2] serta [1-2].", REFS), "citation", rules), "SIT-012"),
+    ).toEqual([]);
+    expect(only(run(numbered("Lihat [1-3].", REFS), "citation", rules), "SIT-012")).toHaveLength(1);
+  });
+
+  it("SIT-013 entri bernomor yang tidak disitasi", () => {
+    const bad = run(numbered("Hanya satu sumber [1].", REFS), "citation", rules);
+    const found = only(bad, "SIT-013");
+    expect(found).toHaveLength(1);
+    expect(found[0]!.message).toContain("[2]");
+    expect(only(run(numbered("Dua sumber [1][2].", REFS), "citation", rules), "SIT-013")).toEqual(
+      [],
+    );
+  });
+
+  it("SIT-014 nomor daftar pustaka tidak berurutan dan sitasi tidak menurut urutan muncul", () => {
+    const gap = run(
+      numbered("Sumber [1] dan [3].", ["[1] A. Adams, Satu, 2020.", "[3] C. Citra, Tiga, 2021."]),
+      "citation",
+      rules,
+    );
+    expect(only(gap, "SIT-014").some((i) => i.message.includes("nomor 3"))).toBe(true);
+    const order = run(numbered("Mula-mula [2], lalu [1].", REFS), "citation", rules);
+    expect(only(order, "SIT-014").some((i) => i.message.includes("[1] pertama kali"))).toBe(true);
+    const ok = run(numbered("Mula-mula [1], lalu [2].", REFS), "citation", rules);
+    expect(only(ok, "SIT-014")).toEqual([]);
+  });
+
+  it("aturan bernomor tidak jalan pada naskah gaya APA", () => {
+    const apa = run(
+      numbered("Menurut (Adams, 2020) baik.", ["Adams, B. (2020). Judul. Penerbit."]),
+      "citation",
+    );
+    for (const code of ["SIT-012", "SIT-013", "SIT-014"]) expect(only(apa, code)).toEqual([]);
+  });
+
+  it("SIT-015 penulis dan tahun sama tanpa huruf pembeda (APA)", () => {
+    const bad = run(
+      numbered("Lihat (Adams, 2020).", [
+        "Adams, B. (2020). Judul satu. Penerbit.",
+        "Adams, B. (2020). Judul dua. Penerbit.",
+      ]),
+      "citation",
+    );
+    expect(only(bad, "SIT-015")).toHaveLength(1);
+    const ok = run(
+      numbered("Lihat (Adams, 2020a).", [
+        "Adams, B. (2020a). Judul satu. Penerbit.",
+        "Adams, B. (2020b). Judul dua. Penerbit.",
+      ]),
+      "citation",
+    );
+    expect(only(ok, "SIT-015")).toEqual([]);
+  });
+});

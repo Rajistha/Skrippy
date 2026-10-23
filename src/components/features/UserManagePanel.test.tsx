@@ -22,6 +22,8 @@ const user = (over: Partial<AdminUser> = {}): AdminUser => ({
     daily_limit: 20,
   },
   checks_used: 0,
+  storage_bytes: 0,
+  file_count: 0,
   ...over,
 });
 

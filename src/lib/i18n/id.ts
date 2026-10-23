@@ -37,6 +37,7 @@ export const id = {
     access: "Profil",
     admin: "Panel admin",
     more: "Lainnya",
+    moreTitle: "Menu lainnya",
     signOut: "Keluar",
     adminCodes: "Kode akses",
     adminUsers: "Pengguna",
@@ -887,6 +888,94 @@ export const id = {
       n > 0 ? `Kode dihapus. ${n} pengguna kehilangan aksesnya.` : "Kode dihapus.",
   },
 
+  pwa: {
+    title: "Pasang Skrippy di ponselmu",
+    subtitle: "Buka dari layar utama seperti aplikasi biasa, tanpa mengetik alamat web.",
+    benefits: [
+      {
+        icon: "rocket",
+        title: "Sekali ketuk",
+        body: "Ikon Skrippy di layar utama, terbuka layar penuh tanpa bilah alamat.",
+      },
+      {
+        icon: "offline",
+        title: "Laporan terakhir tetap terbuka",
+        body: "Skor dan temuan laporan yang pernah kamu buka bisa dibaca lagi tanpa internet, misalnya saat bimbingan di ruangan tanpa sinyal.",
+      },
+      {
+        icon: "zap",
+        title: "Lebih cepat dimuat",
+        body: "Tampilan aplikasi diambil dari perangkatmu, jadi halaman terbuka lebih cepat.",
+      },
+      {
+        icon: "wallet",
+        title: "Gratis dan ringan",
+        body: "Tidak lewat Play Store atau App Store, dan hampir tidak memakan ruang penyimpanan.",
+      },
+    ],
+    install: "Pasang aplikasi",
+    installedOk: "Skrippy terpasang. Cari ikonnya di layar utama.",
+    installedTitle: "Skrippy sudah terpasang",
+    installedBody: "Kamu sedang membuka Skrippy sebagai aplikasi di perangkat ini.",
+    howTitle: "Cara memasang",
+    yourDevice: "Perangkatmu",
+    platforms: {
+      android: {
+        label: "Android (Chrome)",
+        steps: [
+          "Buka skrippy.id di Chrome.",
+          "Ketuk tombol Pasang aplikasi di halaman ini, atau menu titik tiga di pojok kanan atas.",
+          "Pilih Instal aplikasi (di sebagian ponsel bernama Tambahkan ke layar utama).",
+          "Ketuk Instal. Ikon Skrippy muncul di layar utama.",
+        ],
+      },
+      ios: {
+        label: "iPhone dan iPad (Safari)",
+        steps: [
+          "Buka skrippy.id di Safari. Di iPhone, hanya Safari yang bisa memasang; Chrome atau browser di dalam aplikasi lain tidak bisa.",
+          "Ketuk ikon Bagikan (kotak dengan panah ke atas) di bilah bawah layar.",
+          "Gulir ke bawah, lalu pilih Tambah ke Layar Utama.",
+          "Ketuk Tambah. Ikon Skrippy muncul di layar utama.",
+        ],
+      },
+      desktop: {
+        label: "Komputer (Chrome atau Edge)",
+        steps: [
+          "Buka skrippy.id di Chrome atau Edge.",
+          "Klik ikon pasang di ujung kanan bilah alamat, atau tombol Pasang aplikasi di halaman ini.",
+          "Klik Pasang. Skrippy terbuka di jendelanya sendiri.",
+        ],
+      },
+    },
+    inAppTitle: "Buka lewat browser dulu",
+    inAppBody:
+      "Kamu sedang membuka Skrippy dari dalam aplikasi lain (misalnya Instagram atau WhatsApp). Salin alamatnya lalu buka di Chrome atau Safari agar bisa dipasang.",
+    privacyNote:
+      "Agar bisa dibaca tanpa internet, salinan skor dan temuan laporan yang kamu buka disimpan di perangkatmu. Salinan itu dihapus saat kamu keluar dari akun. Teks naskahmu tidak ikut disimpan.",
+    bannerTitle: "Pasang Skrippy di ponselmu",
+    bannerBody: "Buka dari layar utama dan baca laporan terakhir tanpa internet.",
+    howLink: "Lihat caranya",
+    dismiss: "Nanti saja",
+    page: {
+      metaTitle: "Pasang Skrippy di ponsel",
+      back: "Kembali",
+      note: "Skrippy adalah aplikasi web progresif (PWA): dipasang langsung dari browser, tanpa toko aplikasi.",
+    },
+    landing: {
+      overline: "PASANG DI PONSEL",
+      title: "Buka Skrippy sekali ketuk dari layar utama",
+      body: "Pasang langsung dari browser, tanpa Play Store atau App Store. Laporan terakhir yang pernah kamu buka tetap bisa dibaca saat internet putus.",
+      cta: "Lihat cara memasang",
+    },
+    footerLink: "Pasang di ponsel",
+    offline: {
+      title: "Kamu sedang offline",
+      body: "Halaman ini belum pernah dibuka di perangkat ini, jadi belum bisa tampil tanpa internet. Laporan yang pernah kamu buka tetap bisa dibaca. Sambungkan internet lalu coba lagi.",
+      retry: "Coba lagi",
+      toReports: "Buka riwayat cek",
+    },
+  },
+
   usersUi: {
     description: "Atur peran dan akses, lihat skripsi, atau hapus akun.",
     search: "Cari email",
@@ -895,6 +984,15 @@ export const id = {
     sortJoined: "Tanggal daftar",
     sortEmail: "Email",
     sortChecks: "Cek dipakai",
+    sortStorage: "Penyimpanan",
+    summaryUsers: "Pengguna",
+    summaryStorage: "Total penyimpanan",
+    summaryFiles: "Naskah tersimpan",
+    storage: "Penyimpanan",
+    storageEmpty: "Belum ada naskah",
+    files: (n: number) => `${n} naskah`,
+    checks: (n: number) => `${n} cek`,
+    noThesis: "Belum ada skripsi",
     sortDesc: "Urutan menurun (klik untuk menaik)",
     sortAsc: "Urutan menaik (klik untuk menurun)",
     adminLabel: "admin",
@@ -1156,6 +1254,32 @@ export const id = {
     downloadFixedNote:
       "Salinan yang ejaan, huruf, spasi, indentasi, perataan, istilah asing, margin, dan tabelnya dirapikan otomatis.",
     exportFixed: "Naskah Rapi (DOCX)",
+    preview: {
+      title: "Pratinjau naskah",
+      open: "Lihat naskah",
+      showInDoc: "Lihat di naskah",
+      note: "Teks naskah disusun ulang untuk dibaca di sini. Halaman, margin, dan tata letak Word tidak ditampilkan; hanya temuan yang masih terbuka yang disorot.",
+      onlyFlagged: "Hanya paragraf bermasalah",
+      prev: "Temuan sebelumnya",
+      next: "Temuan berikutnya",
+      counter: (n: number, total: number) => `Temuan ${n} dari ${total}`,
+      total: (n: number) => `${n} paragraf bermasalah`,
+      noIssues: "Tidak ada temuan terbuka",
+      empty: "Teks naskah tidak bisa ditampilkan",
+      emptyBody: "Naskah kosong atau tidak memuat teks yang terbaca.",
+    },
+    checklist: {
+      title: "Checklist sebelum sidang",
+      note: "Kelengkapan komponen naskah, dicek dari struktur dokumen. Tidak memengaruhi skor.",
+      progress: (done: number, total: number) => `${done} dari ${total} lengkap`,
+      allDone: "Semua komponen yang bisa dicek otomatis sudah lengkap.",
+      statusLabel: {
+        ok: "Lengkap",
+        missing: "Belum ada",
+        warn: "Perlu dicek",
+        manual: "Cek sendiri",
+      },
+    },
     stats: {
       title: "Statistik naskah",
       note: "Gambaran umum naskah. Angka ini bukan temuan dan tidak memengaruhi skor.",
@@ -1301,7 +1425,7 @@ export const id = {
 
   privacyPage: {
     title: "Kebijakan privasi",
-    updated: "Diperbarui 22 Oktober 2026",
+    updated: "Diperbarui 23 Oktober 2026",
     intro:
       "Skrippy adalah proyek pribadi untuk teman dekat pemilik. Kebijakan ini menjelaskan data apa yang disimpan dan bagaimana kamu mengendalikannya, mengikuti prinsip Undang-Undang Pelindungan Data Pribadi (UU No. 27 Tahun 2022).",
     sections: [
@@ -1329,6 +1453,7 @@ export const id = {
           "File disimpan di penyimpanan privat dan hanya bisa diakses lewat tautan bertanda tangan yang berumur pendek.",
           "Naskah yang tidak disentuh selama 30 hari dihapus otomatis bersama kutipan di temuannya.",
           "Kamu bisa menghapus satu versi, satu skripsi, atau seluruh akun kapan saja dari dalam aplikasi.",
+          "Bila kamu memasang Skrippy di perangkat, salinan skor dan temuan laporan yang pernah kamu buka disimpan di browser perangkat itu agar bisa dibaca tanpa internet. Teks naskah tidak ikut disimpan, dan salinan dihapus saat kamu keluar dari akun.",
         ],
       },
       {

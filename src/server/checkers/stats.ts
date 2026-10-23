@@ -1,4 +1,5 @@
 /** Statistik naskah (bukan temuan): ukuran per bab, kepadatan sitasi, keterbacaan, umur sumber. Murni. */
+import { buildChecklist, type Checklist } from "./checklist";
 import { chapterRanges } from "./structure/extra";
 import { findSections } from "./structure/rules";
 import type { ParsedDocument, Rules } from "./types";
@@ -17,6 +18,8 @@ export type ManuscriptStats = {
   figures: number;
   footnotes: number;
   chapters: ChapterStat[];
+  /** Kelengkapan naskah sebelum sidang. Tidak ada pada cek lama. */
+  checklist?: Checklist;
   readability: {
     sentences: number;
     avgSentenceWords: number;
@@ -114,6 +117,7 @@ export function computeStats(doc: ParsedDocument, rules: Rules): ManuscriptStats
     figures: doc.paragraphs.filter((p) => p.hasDrawing && (p.imageWidthCm ?? 99) >= 3).length,
     footnotes: doc.footnoteCount,
     chapters,
+    checklist: buildChecklist(doc, rules),
     readability: {
       sentences,
       avgSentenceWords: sentences ? round1(sentenceWords / sentences) : 0,

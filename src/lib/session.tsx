@@ -9,6 +9,8 @@ import { Icon } from "@/components/ui/Icon";
 import { PageLoader } from "@/components/ui/Skeleton";
 import { toast } from "@/components/ui/Toast";
 import { api, toApiError, UNAUTHORIZED_EVENT } from "@/lib/api/client";
+import { clearOfflineData } from "@/lib/pwa";
+import { readCachedMe, writeCachedMe } from "@/lib/session-cache";
 import { t } from "@/lib/i18n/id";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Me } from "@/lib/types";
@@ -23,6 +25,8 @@ const SessionContext = createContext<SessionValue | null>(null);
 
 // Mencegah pengalihan ke halaman masuk berulang bila beberapa permintaan serentak sama-sama 401.
 let expiring = false;
+// Sudah ada profil di layar (dari salinan tab ini atau /me)? Maka kegagalan jaringan tidak mengganti halaman.
+let shown = false;
 
 export function useSession(): SessionValue {
   const value = useContext(SessionContext);
@@ -44,6 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const toLogin = useCallback(() => {
     if (expiring) return;
     expiring = true;
+    void clearOfflineData();
     toast.warning(t.toast.sessionExpired, {
       title: t.toast.sessionExpiredTitle,
       id: "session-expired",
@@ -55,6 +60,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const { data, error, response } = await api.GET("/me");
     if (data) {
       expiring = false;
+      shown = true;
+      writeCachedMe(data);
       setMe(data);
       setFailed(null);
       return;
@@ -62,12 +69,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const err = toApiError(error);
     if (response?.status === 401) toLogin();
     else if (err.code === "access_code_required") router.replace("/tukar-kode");
-    else setFailed(err.code === "network" ? t.errors.network : err.message);
+    else if (!shown) setFailed(err.code === "network" ? t.errors.network : err.message);
   }, [router, toLogin]);
 
   useEffect(() => {
-    // Muat sesi saat mount; setState terjadi setelah await.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Tampilkan salinan terakhir dulu (bila ada) agar halaman memuat datanya bersamaan dengan /me,
+    // bukan menunggu /me selesai. /me tetap dimuat untuk menyegarkan dan memverifikasi sesi.
+    shown = false;
+    const cached = readCachedMe();
+    if (cached) {
+      shown = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMe(cached);
+    }
     void load();
   }, [load]);
 
@@ -77,7 +91,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [toLogin]);
 
   const signOut = useCallback(async () => {
-    await supabaseBrowser().auth.signOut();
+    await (await supabaseBrowser()).auth.signOut();
+    // Salinan laporan untuk dipakai offline milik akun ini tidak boleh tersisa di perangkat.
+    await clearOfflineData();
     toast.success(t.toast.signedOut);
     router.replace("/");
   }, [router]);

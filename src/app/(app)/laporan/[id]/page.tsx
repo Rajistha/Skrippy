@@ -6,10 +6,12 @@ import { AppShell } from "@/components/features/AppShell";
 import { CompareSection } from "@/components/features/CompareSection";
 import { DownloadMenu } from "@/components/features/DownloadMenu";
 import { IssueCard } from "@/components/features/IssueCard";
+import { ManuscriptPreview } from "@/components/features/ManuscriptPreview";
 import { RunProgress } from "@/components/features/RunProgress";
 import { ScoreRing } from "@/components/features/ScoreRing";
 import { StatsPanel } from "@/components/features/StatsPanel";
 import { ChapterProgress } from "@/components/features/ChapterProgress";
+import { ChecklistPanel } from "@/components/features/ChecklistPanel";
 import { TrendChart } from "@/components/features/TrendChart";
 import { PriorityList } from "@/components/features/PriorityList";
 import { ShareDialog } from "@/components/features/ShareDialog";
@@ -61,6 +63,11 @@ export default function ReportPage() {
   const [severity, setSeverity] = useState<string>("all");
   const [chapter, setChapter] = useState<string>("all");
   const [sharing, setSharing] = useState(false);
+  // Pratinjau naskah: terbuka atau tidak, dan paragraf yang disorot saat dibuka dari kartu temuan.
+  const [preview, setPreview] = useState<{ open: boolean; at: number | null }>({
+    open: false,
+    at: null,
+  });
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [forceOpen, setForceOpen] = useState<boolean | undefined>(undefined);
@@ -189,6 +196,9 @@ export default function ReportPage() {
       actions={
         completed && (
           <>
+            <Button variant="outline" onClick={() => setPreview({ open: true, at: null })}>
+              <Icon name="eye" /> {t.report.preview.open}
+            </Button>
             <Button variant="outline" onClick={() => setSharing(true)}>
               <Icon name="share" /> {t.share.button}
             </Button>
@@ -279,6 +289,7 @@ export default function ReportPage() {
           {issues && <ChapterProgress issues={issues} />}
           <TrendChart runId={id} />
 
+          {run.stats?.checklist && <ChecklistPanel checklist={run.stats.checklist} />}
           {run.stats && <StatsPanel stats={run.stats} />}
 
           <CompareSection runId={id} />
@@ -470,6 +481,7 @@ export default function ReportPage() {
                   issue={issue}
                   runId={id}
                   forceOpen={forceOpen}
+                  onShowInDocument={(at) => setPreview({ open: true, at })}
                   onStatus={(s) => setStatus(issue, s)}
                 />
               ))
@@ -542,6 +554,13 @@ export default function ReportPage() {
           )}
         </>
       )}
+      <ManuscriptPreview
+        runId={id}
+        issues={all}
+        open={preview.open}
+        focusIndex={preview.at}
+        onClose={() => setPreview((p) => ({ ...p, open: false }))}
+      />
       <ShareDialog runId={id} open={sharing} onClose={() => setSharing(false)} />
     </AppShell>
   );

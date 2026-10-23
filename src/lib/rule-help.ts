@@ -262,6 +262,22 @@ export const RULE_HELP: Record<string, RuleHelp> = {
     why: "Kutipan langsung perlu nomor halaman agar bisa diverifikasi.",
     how: "Tambahkan halaman: (Adams, 2020, hlm. 15).",
   },
+  "SIT-012": {
+    why: "Sitasi bernomor seperti [3] harus menunjuk ke entri bernomor yang sama di daftar pustaka.",
+    how: "Tambahkan sumber bernomor itu ke daftar pustaka, atau perbaiki nomor di teks.",
+  },
+  "SIT-013": {
+    why: "Setiap entri bernomor di daftar pustaka semestinya disitasi di naskah.",
+    how: "Sitasi sumbernya dengan nomornya, misalnya [4], atau hapus entri yang tidak dipakai.",
+  },
+  "SIT-014": {
+    why: "Gaya bernomor (IEEE) menomori sumber menurut urutan pertama kali disitasi, tanpa lompatan nomor.",
+    how: "Nomori ulang entri dan sitasi sehingga [1] muncul lebih dulu dari [2], dan seterusnya.",
+  },
+  "SIT-015": {
+    why: "Dua sumber dengan penulis dan tahun sama tidak bisa dibedakan pembaca bila tahunnya polos.",
+    how: "Beri huruf pada tahun, misalnya (2020a) dan (2020b), di daftar pustaka dan di semua sitasinya.",
+  },
   "AI-001": {
     why: "Analisis AI menemukan kemungkinan kesalahan tata bahasa atau ejaan.",
     how: "Baca kalimatnya dan terapkan saran bila benar. AI bisa keliru, jadi tetap pakai penilaianmu.",

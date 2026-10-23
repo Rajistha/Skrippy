@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/features/AppShell";
 import { DashboardView } from "@/components/features/DashboardView";
+import { InstallBanner } from "@/components/features/InstallApp";
 import { ErrorState } from "@/components/ui/States";
 import { api, toApiError } from "@/lib/api/client";
 import { unwrap, useAsync } from "@/lib/hooks";
@@ -30,6 +31,7 @@ export default function DashboardPage() {
         </ButtonLink>
       }
     >
+      <InstallBanner />
       {error && <ErrorState message={error} onRetry={() => void reload()} />}
       {data ? <DashboardView me={me} data={data} /> : !error && <DashboardSkeleton />}
     </AppShell>

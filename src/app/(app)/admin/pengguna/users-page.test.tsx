@@ -46,6 +46,8 @@ const mk = (id: string, over: Partial<AdminUser>): AdminUser => ({
   thesis_title: null,
   access: { state: "none", ends_at: null, days_left: null, checks_left: null, daily_limit: null },
   checks_used: 0,
+  storage_bytes: 0,
+  file_count: 0,
   ...over,
 });
 
@@ -56,6 +58,8 @@ const USERS: AdminUser[] = [
     role: "superadmin",
     created_at: "2026-10-14T01:00:00Z",
     thesis_title: "Turah & Niti",
+    storage_bytes: 3 * 1024 * 1024,
+    file_count: 2,
     access: {
       state: "package",
       ends_at: null,
@@ -81,6 +85,8 @@ const USERS: AdminUser[] = [
     full_name: "rajistha",
     created_at: "2026-10-11T00:00:00Z",
     checks_used: 7,
+    storage_bytes: 512 * 1024,
+    file_count: 1,
   }),
   mk(SELF, {
     email: "pujarajista@gmail.com",
@@ -130,10 +136,10 @@ describe("halaman pengguna", () => {
   it("baris berisi email, label admin, nama, tanggal daftar, skripsi, dan label akses", async () => {
     mount();
     expect(await screen.findByText("turahguntur3@gmail.com")).toBeTruthy();
-    expect(
-      screen.getByText(/I Gusti Ngurah · daftar 14 Oktober 2026 · skripsi: Turah & Niti/),
-    ).toBeTruthy();
-    expect(screen.getByText(/daftar 11 Oktober 2026 · skripsi: -/)).toBeTruthy();
+    expect(screen.getByText("I Gusti Ngurah · daftar 14 Oktober 2026")).toBeTruthy();
+    expect(screen.getByText("Turah & Niti")).toBeTruthy();
+    expect(screen.getByText("rajistha · daftar 11 Oktober 2026")).toBeTruthy();
+    expect(screen.getAllByText("Belum ada skripsi").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Selamanya")).toHaveLength(2);
     expect(screen.getByText("Berakhir")).toBeTruthy();
     expect(screen.getByText("Belum ada akses")).toBeTruthy();
@@ -208,5 +214,19 @@ describe("halaman pengguna", () => {
     expect(within(dialog).getByText("rajistha · rajistha.id@gmail.com")).toBeTruthy();
     expect(within(dialog).getByRole("heading", { name: "Peran akun" })).toBeTruthy();
     expect(within(dialog).getByRole("heading", { name: "Akses aplikasi" })).toBeTruthy();
+  });
+
+  it("menampilkan penyimpanan per pengguna dan total, serta bisa diurutkan menurut penyimpanan", async () => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByText("turahguntur3@gmail.com");
+    expect(screen.getByText("3,0 MB")).toBeTruthy(); // baris Turah
+    expect(screen.getByText("2 naskah")).toBeTruthy();
+    expect(screen.getByText("512 KB")).toBeTruthy(); // baris rajistha
+    expect(screen.getByText("3,5 MB")).toBeTruthy(); // ringkasan total
+    expect(screen.getAllByText("Belum ada naskah")).toHaveLength(2);
+    expect(screen.getByRole("meter", { name: "Penyimpanan: turahguntur3@gmail.com" })).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("Urutkan"), "storage");
+    expect(emails().slice(0, 2)).toEqual(["turahguntur3@gmail.com", "rajistha.id@gmail.com"]);
   });
 });

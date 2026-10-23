@@ -80,6 +80,20 @@ export const manuscriptStatsSchema = z.object({
   figures: z.number(),
   footnotes: z.number(),
   chapters: z.array(z.object({ name: z.string(), words: z.number(), citations: z.number() })),
+  checklist: z
+    .object({
+      items: z.array(
+        z.object({
+          key: z.string(),
+          label: z.string(),
+          status: z.enum(["ok", "missing", "warn", "manual"]),
+          detail: z.string().optional(),
+        }),
+      ),
+      done: z.number(),
+      total: z.number(),
+    })
+    .optional(),
   readability: z.object({
     sentences: z.number(),
     avgSentenceWords: z.number(),
@@ -92,6 +106,20 @@ export const manuscriptStatsSchema = z.object({
     medianYear: z.number().nullable(),
   }),
 });
+
+export const manuscriptPreviewSchema = z.object({
+  title: z.string(),
+  version_no: z.number(),
+  paragraphs: z.array(
+    z.object({
+      index: z.number(),
+      text: z.string(),
+      kind: z.enum(["body", "heading", "toc"]),
+      align: z.enum(["left", "center", "right", "justify"]),
+    }),
+  ),
+});
+export type ManuscriptPreview = z.infer<typeof manuscriptPreviewSchema>;
 
 export const checkRunSchema = z.object({
   id: uuid,
@@ -189,6 +217,9 @@ export const adminUserSchema = z.object({
   thesis_title: z.string().nullable(),
   access: accessStatusSchema,
   checks_used: z.number(),
+  /** Total ukuran naskah tersimpan milik pengguna (byte). */
+  storage_bytes: z.number(),
+  file_count: z.number(),
 });
 export const grantInSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("lifetime") }),

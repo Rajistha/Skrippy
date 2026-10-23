@@ -65,6 +65,10 @@ export const RULE_TITLES: Record<string, string> = {
   "SIT-009": "Entri pustaka ganda",
   "SIT-010": "DOI atau URL artikel",
   "SIT-011": "Halaman pada kutipan langsung",
+  "SIT-012": "Nomor sitasi tanpa entri",
+  "SIT-013": "Entri bernomor tidak disitasi",
+  "SIT-014": "Urutan sitasi bernomor",
+  "SIT-015": "Huruf pembeda tahun (2020a, 2020b)",
 };
 
 export type RuleCategory = "format" | "structure" | "spelling" | "citation";

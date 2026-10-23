@@ -20,6 +20,8 @@ export const GET = route(async () => {
     thesis_title: u.thesisTitle,
     access: accessOut(u.access),
     checks_used: u.checksUsed,
+    storage_bytes: u.storageBytes,
+    file_count: u.fileCount,
   }));
   return json(body);
 });

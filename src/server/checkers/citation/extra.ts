@@ -1,5 +1,6 @@
 /** Aturan sitasi tambahan (gaya APA): penulis banyak, entri tanpa DOI/URL, kutipan langsung tanpa halaman. */
 import { findSections } from "../structure/rules";
+import { numericCheckers } from "./numeric";
 import type { Checker, Issue, ParsedDocument, ParsedParagraph } from "../types";
 
 const MAX = 25;
@@ -132,6 +133,11 @@ export const quoteWithoutPage: Checker = {
   },
 };
 
-export const citationExtraCheckers: Checker[] = [etAlUsage, missingDoi, quoteWithoutPage];
+export const citationExtraCheckers: Checker[] = [
+  etAlUsage,
+  missingDoi,
+  quoteWithoutPage,
+  ...numericCheckers,
+];
 
 export type { Issue };

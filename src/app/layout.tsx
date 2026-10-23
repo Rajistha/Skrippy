@@ -24,12 +24,16 @@ const sourceSerif = Source_Serif_4({
   style: ["normal", "italic"],
   variable: "--font-source-serif",
   display: "swap",
+  // Hanya dipakai di kutipan laporan dan pratinjau naskah; jangan ikut diunduh di setiap halaman.
+  preload: false,
 });
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["500"],
   variable: "--font-jetbrains",
   display: "swap",
+  // Hanya dipakai untuk kode aturan dan kode akses di dalam aplikasi.
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -40,6 +44,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#1f7a4e",
 };
 

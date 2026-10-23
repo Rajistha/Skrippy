@@ -22,6 +22,7 @@ import type {
   GuidelineTest,
   GuidelineTestIn,
   ScoreTrendPoint,
+  ManuscriptPreview,
   DictionaryEntryOut,
   DictionaryIn,
   IgnoredEntry,
@@ -133,6 +134,7 @@ type Paths = {
   "/admin/guidelines/upload-url": { POST: Ok<GuidelineUpload> & { body: { filename: string } } };
   "/admin/guidelines/test": { POST: Ok<GuidelineTest> & { body: GuidelineTestIn } };
   "/admin/guidelines/extract": { POST: Ok<GuidelineExtraction> & { body: { path: string } } };
+  "/checks/{run_id}/preview": { GET: Ok<ManuscriptPreview> & { path: "run_id" } };
   "/checks/{run_id}/trend": { GET: Ok<ScoreTrendPoint[]> & { path: "run_id" } };
   "/checks/{run_id}/compare": { GET: Ok<Comparison> & { path: "run_id" } };
   "/checks/{run_id}/share": {
@@ -178,7 +180,38 @@ export const UNAUTHORIZED_EVENT = "skrippy:unauthorized";
 
 export type ApiResult<T> = { data?: T; error?: unknown; response?: Response };
 
-async function request(
+/**
+ * GET yang sama dan masih berjalan dipakai bersama. Efek yang berjalan dua kali (React StrictMode di dev) atau dua
+ * komponen yang meminta endpoint sama dalam sekejap tidak lagi menggandakan permintaan ke server. Hasilnya
+ * tidak disimpan setelah selesai, jadi data selalu segar. Mutasi mengosongkan daftar ini agar pembacaan
+ * sesudah tulis tidak memakai jawaban lama.
+ */
+const inFlight = new Map<string, Promise<ApiResult<never>>>();
+
+function request(
+  method: Method,
+  path: string,
+  opts: {
+    params?: { path?: Record<string, string> };
+    body?: unknown;
+    query?: Record<string, string>;
+  } = {},
+): Promise<ApiResult<never>> {
+  if (method !== "GET") {
+    inFlight.clear();
+    return send(method, path, opts);
+  }
+  const key = `${path}|${JSON.stringify(opts.params ?? null)}|${JSON.stringify(opts.query ?? null)}`;
+  const running = inFlight.get(key);
+  if (running) return running;
+  const started = send(method, path, opts).finally(() => {
+    if (inFlight.get(key) === started) inFlight.delete(key);
+  });
+  inFlight.set(key, started);
+  return started;
+}
+
+async function send(
   method: Method,
   path: string,
   opts: {

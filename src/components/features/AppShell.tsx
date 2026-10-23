@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { Menu } from "@/components/ui/Menu";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n/id";
 import { useSession } from "@/lib/session";
@@ -33,6 +34,10 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/sistem", label: t.nav.adminSystem, icon: "server" },
   { href: "/admin/pengaturan", label: t.nav.adminSettings, icon: "settings" },
 ];
+
+/** Ponsel: empat menu utama di bar bawah; sisanya masuk lembar "Lainnya". */
+const ADMIN_BAR = ADMIN_NAV.slice(0, 4);
+const ADMIN_MORE = ADMIN_NAV.slice(4);
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/admin" || href === "/dashboard"
@@ -86,6 +91,39 @@ function Avatar({ url, label }: { url: string | null; label: string }) {
   );
 }
 
+const barItemClass = (active: boolean) =>
+  cn(
+    "flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 pb-1.5 pt-2 text-[12px] leading-4 transition-colors",
+    active ? "font-semibold text-primary-700" : "font-medium text-ink-500 active:text-ink-900",
+  );
+
+/** Ikon dengan "pil" penanda aktif di belakangnya, agar posisi aktif terlihat tanpa bergantung pada warna. */
+function BarIcon({ icon, active }: { icon: IconName; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "grid h-8 w-14 place-items-center rounded-full text-[20px] transition-colors",
+        active ? "bg-primary-100 text-primary-700" : "text-ink-500",
+      )}
+    >
+      <Icon name={icon} />
+    </span>
+  );
+}
+
+function BarLink({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={barItemClass(active)}
+    >
+      <BarIcon icon={item.icon} active={active} />
+      <span className="max-w-full truncate">{item.label}</span>
+    </Link>
+  );
+}
+
 type ShellProps = {
   children: ReactNode;
   title?: string;
@@ -104,6 +142,9 @@ export function AppShell({ children, title, description, actions, back }: ShellP
   const isAdmin = me.profile.role === "superadmin";
   const inAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
   const displayName = me.profile.full_name ?? me.profile.email;
+  // Lembar "Lainnya" terikat ke halaman tempat dibuka, jadi menutup sendiri setelah berpindah halaman.
+  const [moreAt, setMoreAt] = useState<string | null>(null);
+  const moreOpen = moreAt === pathname;
 
   // Dua area terpisah. Superadmin boleh berpindah ke dua-duanya; pengguna biasa tidak punya panel admin.
   useEffect(() => {
@@ -120,6 +161,8 @@ export function AppShell({ children, title, description, actions, back }: ShellP
   // Tanpa akses sama sekali (trial mati dan belum menukar kode): semua halaman terkunci kecuali Profil.
   const locked = !inAdminArea && me.access.state === "none" && pathname !== "/profil";
   const home = inAdminArea ? "/admin" : "/dashboard";
+  const barItems = inAdminArea ? ADMIN_BAR : [...USER_NAV, ...USER_ACCOUNT_NAV];
+  const moreActive = inAdminArea && ADMIN_MORE.some((i) => isActive(pathname, i.href));
 
   const accountMenu = (
     <Menu
@@ -193,7 +236,7 @@ export function AppShell({ children, title, description, actions, back }: ShellP
       </aside>
 
       {/* Kolom utama */}
-      <div className="flex min-w-0 flex-col pb-24 lg:pb-0">
+      <div className="flex min-w-0 flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between gap-3 border-b border-ink-100 bg-surface px-4 shadow-xs sm:px-6 lg:hidden">
           <Link href={home} aria-label={t.app.name} className="flex items-center">
             <Logo size="sm" />
@@ -274,38 +317,53 @@ export function AppShell({ children, title, description, actions, back }: ShellP
       {/* Navigasi bawah (ponsel) */}
       <nav
         aria-label={t.nav.mainMenu}
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-surface/95 shadow-lg backdrop-blur-md lg:hidden",
-          inAdminArea ? "grid grid-cols-6" : "grid grid-cols-4",
-        )}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-lg backdrop-blur-md lg:hidden"
       >
-        {(inAdminArea ? ADMIN_NAV : [...USER_NAV, ...USER_ACCOUNT_NAV]).map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-center transition-colors",
-                inAdminArea ? "text-[10px] sm:text-[11px]" : "text-[11px] sm:text-[12px]",
-                active
-                  ? "font-bold text-primary-600"
-                  : "font-medium text-ink-500 hover:text-ink-900",
-              )}
-            >
-              <Icon
-                name={item.icon}
-                className={cn(
-                  inAdminArea ? "text-[16px] sm:text-[18px]" : "text-[18px]",
-                  active ? "text-primary-600" : undefined,
-                )}
-              />
-              <span className="truncate max-w-full">{item.label}</span>
-            </Link>
-          );
-        })}
+        <div className="mx-auto flex max-w-xl items-stretch px-1">
+          {barItems.map((item) => (
+            <div key={item.href} className="min-w-0 flex-1">
+              <BarLink item={item} active={isActive(pathname, item.href)} />
+            </div>
+          ))}
+          {inAdminArea && (
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={moreOpen}
+                aria-current={moreActive ? "page" : undefined}
+                onClick={() => setMoreAt(pathname)}
+                className={barItemClass(moreActive)}
+              >
+                <BarIcon icon="menu" active={moreActive} />
+                <span className="max-w-full truncate">{t.nav.more}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
+
+      <Modal open={moreOpen} onClose={() => setMoreAt(null)} title={t.nav.moreTitle} size="sm">
+        <div className="flex flex-col gap-1 pb-4">
+          {ADMIN_MORE.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+          {switchItem && (
+            <>
+              <div className="my-1 border-t border-ink-100" />
+              <NavLink item={switchItem} pathname={pathname} />
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] font-medium text-sev-critical hover:bg-sev-critical-bg"
+          >
+            <Icon name="signOut" />
+            {t.nav.signOut}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

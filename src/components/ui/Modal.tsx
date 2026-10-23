@@ -15,14 +15,14 @@ type Props = {
   description?: string;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /** false: tidak bisa ditutup dengan Esc, klik latar, atau tombol X (mis. saat sedang memproses). */
   dismissible?: boolean;
   icon?: IconName;
   tone?: ModalTone;
 };
 
-const SIZE = { sm: "sm:max-w-sm", md: "sm:max-w-md", lg: "sm:max-w-2xl" } as const;
+const SIZE = { sm: "sm:max-w-sm", md: "sm:max-w-md", lg: "sm:max-w-2xl", xl: "sm:max-w-4xl" } as const;
 const TONE: Record<ModalTone, string> = {
   default: "bg-primary-50 text-primary-600",
   danger: "bg-sev-critical-bg text-sev-critical",

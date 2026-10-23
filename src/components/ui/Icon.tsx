@@ -58,6 +58,7 @@ import {
   Settings,
   Share2,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
@@ -182,6 +183,7 @@ const ICONS = {
   ai: Sparkles,
   online: Wifi,
   offline: WifiOff,
+  phone: Smartphone,
 } satisfies Record<string, IconComponent>;
 
 export type IconName = keyof typeof ICONS;

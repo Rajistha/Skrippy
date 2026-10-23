@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AccessCard } from "@/components/features/Access";
 import { AppShell } from "@/components/features/AppShell";
+import { InstallCard } from "@/components/features/InstallApp";
 import { CodeInput } from "@/components/features/CodeInput";
 import { IgnoredList } from "@/components/features/IgnoredList";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ import { formatRupiah, whatsappLink } from "@/lib/format";
 import { unwrap, useAsync } from "@/lib/hooks";
 import { t } from "@/lib/i18n/id";
 import { useSession } from "@/lib/session";
+import { clearOfflineData } from "@/lib/pwa";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function AccessPage() {
@@ -46,7 +48,8 @@ export default function AccessPage() {
   async function deleteAccount() {
     const { error: err } = await api.DELETE("/me");
     if (err) throw new Error(toApiError(err).message);
-    await supabaseBrowser().auth.signOut();
+    await (await supabaseBrowser()).auth.signOut();
+    await clearOfflineData();
     toast.success(t.toast.accountDeleted);
     router.replace("/");
   }
@@ -76,6 +79,7 @@ export default function AccessPage() {
               <p className="truncate text-[14px] text-ink-500">{me.profile.email}</p>
             </div>
           </Card>
+          <InstallCard />
           <Card className="flex flex-col gap-4">
             <div className="flex items-start gap-3">
               <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-50 text-[20px] text-primary-600">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Faq } from "@/components/features/Faq";
+import { InstallButton } from "@/components/features/InstallApp";
 import { HeroCode } from "@/components/features/HeroCode";
 import { ScoreRing } from "@/components/features/ScoreRing";
 import { ButtonLink } from "@/components/ui/Button";
@@ -281,6 +282,45 @@ export function PrivacyBand() {
   );
 }
 
+// ------------------------------------------------------------- pasang di ponsel
+
+export function InstallBand() {
+  const p = t.pwa;
+  return (
+    <section id="pasang" className={cn(WRAP, "pb-20 sm:pb-28")}>
+      <div className="grid items-center gap-8 rounded-xl bg-surface p-6 shadow-sm sm:p-10 lg:grid-cols-[1.2fr_1fr]">
+        <div>
+          <p className="text-[12px] font-semibold uppercase leading-4 tracking-[0.12em] text-primary-600">
+            {p.landing.overline}
+          </p>
+          <h2 className="mt-3 font-display text-[28px] font-bold leading-9 text-ink-900 sm:text-[34px] sm:leading-10">
+            {p.landing.title}
+          </h2>
+          <p className="mt-3 text-[16px] leading-7">{p.landing.body}</p>
+          <ul className="mt-5 flex flex-col gap-2.5">
+            {p.benefits.slice(0, 3).map((b) => (
+              <Check key={b.title}>{b.title}</Check>
+            ))}
+          </ul>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <ButtonLink href="/pasang">
+              <Icon name="phone" /> {p.landing.cta}
+            </ButtonLink>
+            <InstallButton />
+          </div>
+        </div>
+        <div aria-hidden="true" className="mx-auto w-full max-w-[220px]">
+          <div className="rounded-[32px] bg-primary-900 p-2.5 shadow-lg">
+            <div className="flex aspect-[9/16] flex-col items-center justify-center gap-3 rounded-[24px] bg-canvas">
+              <Logo />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ------------------------------------------------------------------ harga
 
 export function Pricing({ info }: { info: PublicInfo }) {
@@ -450,6 +490,11 @@ export function Footer({ whatsapp }: { whatsapp: string }) {
               <a href="#faq" className={link}>
                 FAQ
               </a>
+            </li>
+            <li>
+              <Link href="/pasang" className={link}>
+                {t.pwa.footerLink}
+              </Link>
             </li>
             <li>
               <FooterSignIn className={link} />

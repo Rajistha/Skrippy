@@ -96,4 +96,38 @@ describe("mengubah peran akun", () => {
     expect(rows.find((r) => r.email === "owner@example.com")?.isOwner).toBe(true);
     expect(rows.find((r) => r.email === "target1@example.com")?.isOwner).toBe(false);
   });
+
+  it("daftar pengguna menghitung penyimpanan dari naskah terkonfirmasi yang belum dihapus", async () => {
+    const owner = await profile("storage1@example.com");
+    const other = await profile("storage2@example.com");
+    const [g] = await t.db.select().from(schema.guidelines).limit(1);
+    const [thesis] = await t.db
+      .insert(schema.theses)
+      .values({ ownerId: owner, guidelineId: g!.id, title: "T" })
+      .returning();
+    const doc = (
+      versionNo: number,
+      sizeBytes: number,
+      over: Partial<typeof schema.documents.$inferInsert>,
+    ) =>
+      t.db.insert(schema.documents).values({
+        thesisId: thesis!.id,
+        versionNo,
+        originalFilename: `v${versionNo}.docx`,
+        storageKey: randomUUID(),
+        mimeType: "x",
+        sizeBytes,
+        sha256: "a".repeat(64),
+        ...over,
+      });
+    await doc(1, 1000, {});
+    await doc(2, 2500, {});
+    await doc(3, 9999, { deletedAt: new Date() }); // sudah dihapus
+    await doc(4, 7777, { sha256: null }); // unggahan belum dikonfirmasi
+    const rows = await admin.listUsers(t.db);
+    const mine = rows.find((r) => r.id === owner)!;
+    expect([mine.storageBytes, mine.fileCount]).toEqual([3500, 2]);
+    const none = rows.find((r) => r.id === other)!;
+    expect([none.storageBytes, none.fileCount]).toEqual([0, 0]);
+  });
 });

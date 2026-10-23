@@ -29,9 +29,18 @@ type Props = {
   readOnly?: boolean;
   /** Sinkronisasi buka/tutup massal dari luar. */
   forceOpen?: boolean;
+  /** Bila diisi dan temuan menunjuk paragraf, tampilkan "Lihat di naskah". */
+  onShowInDocument?: (paragraphIndex: number) => void;
 };
 
-export function IssueCard({ issue, runId, onStatus, readOnly = false, forceOpen }: Props) {
+export function IssueCard({
+  issue,
+  runId,
+  onStatus,
+  readOnly = false,
+  forceOpen,
+  onShowInDocument,
+}: Props) {
   const [prevForceOpen, setPrevForceOpen] = useState(forceOpen);
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -117,6 +126,16 @@ export function IssueCard({ issue, runId, onStatus, readOnly = false, forceOpen 
               <span className="rounded-md bg-ink-100 px-2.5 py-0.5 font-mono text-[12px] font-medium text-ink-700">
                 {where}
               </span>
+              {onShowInDocument && typeof issue.location.paragraph_index === "number" && (
+                <button
+                  type="button"
+                  onClick={() => onShowInDocument(issue.location.paragraph_index as number)}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-primary-500 px-3 text-[12px] font-semibold text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  <Icon name="eye" size={14} />
+                  {t.report.preview.showInDoc}
+                </button>
+              )}
             </div>
           )}
 

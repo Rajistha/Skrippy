@@ -57,15 +57,27 @@ export function codeStatus(code: access.AccessCode, now: Date): CodeStatus {
 }
 
 export async function listUsers(db: Db, now: Date = new Date()) {
-  // Tiga query untuk seluruh daftar (bukan satu per pengguna): profil, semua grant, dan skripsi.
-  const [rows, grants, owned] = await Promise.all([
+  // Empat query untuk seluruh daftar (bukan satu per pengguna): profil, grant, skripsi, dan pemakaian storage.
+  const [rows, grants, owned, usage] = await Promise.all([
     db.select().from(profiles).orderBy(desc(profiles.createdAt)),
     db.select().from(accessGrants),
     db
       .select({ ownerId: theses.ownerId, title: theses.title })
       .from(theses)
       .orderBy(desc(theses.lastActivityAt)),
+    // Hanya naskah terkonfirmasi dan belum dihapus yang memakai ruang di storage.
+    db
+      .select({
+        ownerId: theses.ownerId,
+        bytes: sql<string>`coalesce(sum(${documents.sizeBytes}), 0)`,
+        files: count(),
+      })
+      .from(documents)
+      .innerJoin(theses, eq(theses.id, documents.thesisId))
+      .where(and(isNull(documents.deletedAt), isNotNull(documents.sha256)))
+      .groupBy(theses.ownerId),
   ]);
+  const usageBy = new Map(usage.map((u) => [u.ownerId, u]));
   const grantsBy = new Map<string, (typeof grants)[number][]>();
   for (const g of grants) grantsBy.set(g.userId, [...(grantsBy.get(g.userId) ?? []), g]);
   const titleBy = new Map<string, string>();
@@ -82,6 +94,8 @@ export async function listUsers(db: Db, now: Date = new Date()) {
       thesisTitle: titleBy.get(p.id) ?? null,
       access: access.accessStatusFromGrants(mine, now),
       checksUsed: mine.reduce((n, g) => n + g.checksUsed, 0),
+      storageBytes: Number(usageBy.get(p.id)?.bytes ?? 0),
+      fileCount: usageBy.get(p.id)?.files ?? 0,
     };
   });
 }

@@ -10,6 +10,7 @@ export type {
   DocumentItem,
   Guideline,
   Issue,
+  ManuscriptPreview,
   Me,
   PublicInfo,
   Summary,
