@@ -35,7 +35,9 @@ function LoginForm() {
     if (code) redirect.searchParams.set("kode", code);
     if (next && next.startsWith("/") && !next.startsWith("//"))
       redirect.searchParams.set("next", next);
-    const { error } = await supabaseBrowser().auth.signInWithOAuth({
+    const { error } = await (
+      await supabaseBrowser()
+    ).auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: redirect.toString() },
     });

@@ -4,6 +4,7 @@ import { getDb } from "./db/client";
 import { schema } from "./db";
 import { AccessDenied, Unauthenticated } from "./errors";
 import * as access from "./services/access";
+import { shouldCheckTrial } from "./trial-throttle";
 import { supabaseServer } from "@/lib/supabase/server";
 
 /**
@@ -33,7 +34,7 @@ export async function profileFor(claims: access.TokenClaims): Promise<access.Pro
     .where(eq(schema.profiles.id, claims.userId));
   const profile = existing ?? (await access.ensureUserProfile(db, claims));
   // Trial dinyalakan setelah akun dibuat: pengguna tanpa akses mendapat trial saat masuk berikutnya.
-  if (existing && !existing.trialUsed && existing.role === "user")
+  if (existing && !existing.trialUsed && existing.role === "user" && shouldCheckTrial(existing.id))
     await access.grantTrialIfEligible(db, existing.id);
   if (profile.deactivatedAt) throw new AccessDenied("Akun ini dinonaktifkan.");
   return profile;

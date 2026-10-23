@@ -35,7 +35,9 @@ function RegisterForm() {
   async function google() {
     setGoogleLoading(true);
     const redirect = new URL("/auth/callback", window.location.origin);
-    const { error } = await supabaseBrowser().auth.signInWithOAuth({
+    const { error } = await (
+      await supabaseBrowser()
+    ).auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: redirect.toString() },
     });

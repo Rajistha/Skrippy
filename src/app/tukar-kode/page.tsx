@@ -28,7 +28,7 @@ function RedeemFlow() {
 
   useEffect(() => {
     void supabaseBrowser()
-      .auth.getSession()
+      .then((supabase) => supabase.auth.getSession())
       .then(({ data }) => {
         if (data.session) setSignedIn(true);
         else

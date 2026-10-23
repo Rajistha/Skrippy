@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { t } from "@/lib/i18n/id";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowser, warmSupabaseBrowser } from "@/lib/supabase/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,6 +20,8 @@ type Props =
 
 /** Form email dan kata sandi untuk masuk atau mendaftar. Akun baru otomatis mendapat trial. */
 export function PasswordForm(props: Props) {
+  // Unduh kode Supabase selagi pengguna mengetik, bukan saat tombol ditekan.
+  useEffect(() => warmSupabaseBrowser(), []);
   const register = props.mode === "register";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +40,7 @@ export function PasswordForm(props: Props) {
     if (Object.keys(next).length > 0) return;
 
     setLoading(true);
-    const supabase = supabaseBrowser();
+    const supabase = await supabaseBrowser();
     if (props.mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       setLoading(false);

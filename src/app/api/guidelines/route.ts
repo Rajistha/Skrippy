@@ -16,5 +16,8 @@ export const GET = route(async () => {
     version: g.version,
     citation_style: g.citationStyle,
   }));
-  return json(body);
+  const res = json(body);
+  // Daftar pedoman jarang berubah: cache di browser pengguna (bukan CDN, karena butuh sesi) agar halaman Skripsi tidak menunggu ulang.
+  res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=300");
+  return res;
 });
